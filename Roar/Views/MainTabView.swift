@@ -1,6 +1,7 @@
 import SwiftUI
 struct MainTabView: View {
     @State private var showCamera = false
+    @State private var selectedTab: String = "ForYou"
     
     // Customizing the appearance of the Tab Bar
     init() {
@@ -26,38 +27,48 @@ struct MainTabView: View {
     }
     
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             ForYouView()
                 .tabItem {
                     Image(systemName: "house.fill")
                     Text("For You")
                 }
+                .tag("ForYou")
+                .environment(\.owningTab, "ForYou")
             
             ExploreView()
                 .tabItem {
                     Image(systemName: "magnifyingglass")
                     Text("Explore")
                 }
+                .tag("Explore")
+                .environment(\.owningTab, "Explore")
             
             // Camera Placeholder for Tab Layout
             CameraView()
                 .tabItem {
                     Image(systemName: "plus.circle.fill")
                 }
+                .tag("Camera")
             
             FriendsView()
                 .tabItem {
                     Image(systemName: "person.2.fill")
                     Text("Friends")
                 }
+                .tag("Friends")
+                .environment(\.owningTab, "Friends")
             
             ProfileView()
                 .tabItem {
                     Image(systemName: "person.circle.fill")
                     Text("Profile")
                 }
+                .tag("Profile")
+                .environment(\.owningTab, "Profile")
         }
         .accentColor(.roarGold)
-        }
+        .environment(\.selectedTab, selectedTab)
     }
+}
 

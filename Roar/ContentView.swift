@@ -28,6 +28,10 @@ struct ContentView: View {
                     self.isSignedIn = session.isSignedIn
                     self.isCheckingSession = false
                 }
+                
+                if session.isSignedIn {
+                    await MockDataGenerator.generateMockUsersAndRelationships()
+                }
             } catch {
                 print("Error checking session: \(error)")
                 DispatchQueue.main.async {

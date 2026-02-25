@@ -371,12 +371,46 @@
      {
       "attributeName": "id",
       "attributeType": "S"
+     },
+     {
+      "attributeName": "authorId",
+      "attributeType": "S"
      }
     ],
     "keySchema": [
      {
       "attributeName": "id",
       "keyType": "HASH"
+     }
+    ],
+    "globalSecondaryIndexes": [
+     {
+      "indexName": "gsi-User.posts",
+      "keySchema": [
+       {
+        "attributeName": "authorId",
+        "keyType": "HASH"
+       }
+      ],
+      "projection": {
+       "projectionType": "ALL"
+      },
+      "provisionedThroughput": {
+       "Fn::If": [
+        "ShouldUsePayPerRequestBilling",
+        {
+         "Ref": "AWS::NoValue"
+        },
+        {
+         "ReadCapacityUnits": {
+          "Ref": "DynamoDBModelTableReadIOPS"
+         },
+         "WriteCapacityUnits": {
+          "Ref": "DynamoDBModelTableWriteIOPS"
+         }
+        }
+       ]
+      }
      }
     ],
     "provisionedThroughput": {
@@ -983,6 +1017,28 @@
     "aws:cdk:path": "amplify-roarbackend-xw-sandbox-eac50d87dd/data/amplifyData/Post/MutationcreatePostinit0Function/MutationcreatePostinit0Function.AppSyncFunction"
    }
   },
+  "MutationcreatePostinit1FunctionMutationcreatePostinit1FunctionAppSyncFunctionE07A5C84": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyroarbackendxwsandboxeac50d87dddataamplifyDataGraphQLAPI20A75470ApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifyroarbackendxwsandboxeac50d87dddataamplifyDataGraphQLAPINONEDS2A6B87EBName"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationcreatePostinit1Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/145b5a24797caab30ee0a94f2e504da2c7d4c1c8e822126350c9d0b6ccb32e25.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-roarbackend-xw-sandbox-eac50d87dd/data/amplifyData/Post/MutationcreatePostinit1Function/MutationcreatePostinit1Function.AppSyncFunction"
+   }
+  },
   "MutationcreatePostauth0FunctionMutationcreatePostauth0FunctionAppSyncFunctionF347AB28": {
    "Type": "AWS::AppSync::FunctionConfiguration",
    "Properties": {
@@ -995,7 +1051,7 @@
     "FunctionVersion": "2018-05-29",
     "Name": "MutationcreatePostauth0Function",
     "RequestMappingTemplateS3Location": {
-     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/50f35e9a49ecd2cb92adc7a975432f949f1905d395780d56c01305381343f5ea.vtl"
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/fd394a9d5754305ad102ef7cce46e0a734ac74a6be36307236dd1c292bf35bb2.vtl"
     },
     "ResponseMappingTemplate": "$util.toJson({})"
    },
@@ -1070,6 +1126,12 @@
       {
        "Fn::GetAtt": [
         "MutationcreatePostinit0FunctionMutationcreatePostinit0FunctionAppSyncFunction9E444A7F",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "MutationcreatePostinit1FunctionMutationcreatePostinit1FunctionAppSyncFunctionE07A5C84",
         "FunctionId"
        ]
       },
@@ -1209,7 +1271,7 @@
      "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/1f5fed297da9c32ae3af922bf3a38ccf23b956078887d16891ec06c20c64722c.vtl"
     },
     "ResponseMappingTemplateS3Location": {
-     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/ad26f18b0493f58c11a80a61d513167ae05afaf1796a4acfc8d9c04716784288.vtl"
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/98bbeaa5d00336dfbbf069775b6c450b0e0e7206bfad77751e5e5e1f11c4c3ae.vtl"
     }
    },
    "DependsOn": [
@@ -2165,6 +2227,22 @@
       ]
      ]
     }
+   }
+  },
+  "amplifyroarbackendxwsandboxeac50d87dddataamplifyDataPostPostDataSourceA3451F99Name": {
+   "Value": {
+    "Fn::GetAtt": [
+     "PostDataSource",
+     "Name"
+    ]
+   }
+  },
+  "amplifyroarbackendxwsandboxeac50d87dddataamplifyDataPostPostTable26D5C528TableArn": {
+   "Value": {
+    "Fn::GetAtt": [
+     "PostTable",
+     "TableArn"
+    ]
    }
   }
  }

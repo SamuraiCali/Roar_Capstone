@@ -166,7 +166,7 @@
    }
   },
   "awsAppsyncAuthenticationType": {
-   "Value": "API_KEY"
+   "Value": "AMAZON_COGNITO_USER_POOLS"
   },
   "awsAppsyncRegion": {
    "Value": {
@@ -219,7 +219,7 @@
    }
   },
   "awsAppsyncAdditionalAuthenticationTypes": {
-   "Value": "AMAZON_COGNITO_USER_POOLS,AWS_IAM"
+   "Value": "API_KEY,AWS_IAM"
   },
   "storageRegion": {
    "Value": {
@@ -354,7 +354,7 @@
        {
         "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
        },
-       "/000ce7d9f13112a6402f9d3b6576463856bec6561372d082974acbd7f5491216.json"
+       "/bcc3d25fd41b36f6040397fb437c0d763e0ba79f2f7078651a2859adeaccd5f0.json"
       ]
      ]
     }

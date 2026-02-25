@@ -6,8 +6,7 @@ struct TaggingView: View {
     @StateObject private var uploadService = UploadService()
     
     @State private var selectedSport = "Football"
-    @State private var teamName = ""
-    @State private var description = ""
+    @State private var videoTitle = ""
     @Environment(\.presentationMode) var presentationMode
     
     let sports = ["Football", "Basketball", "Soccer", "Baseball", "Volleyball"]
@@ -27,18 +26,15 @@ struct TaggingView: View {
                         .font(.title2)
                         .bold()
                     
+                    TextField("Video Title", text: $videoTitle)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                    
                     Picker("Sport", selection: $selectedSport) {
                         ForEach(sports, id: \.self) { sport in
                             Text(sport).tag(sport)
                         }
                     }
                     .pickerStyle(SegmentedPickerStyle())
-                    
-                    TextField("Team Tag (e.g. FIU)", text: $teamName)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                    
-                    TextField("Description", text: $description)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
                 }
                 .padding()
                 
@@ -60,7 +56,7 @@ struct TaggingView: View {
                             .cornerRadius(10)
                     }
                     .padding()
-                    .disabled(teamName.isEmpty)
+                    .disabled(videoTitle.isEmpty)
                 }
                 
                 if let error = uploadService.uploadError {
@@ -79,9 +75,9 @@ struct TaggingView: View {
             do {
                 try await uploadService.uploadVideo(
                     fileURL: videoURL,
-                    team: teamName,
+                    team: "", // Deprecated locally, pending backend schema removal
                     sport: selectedSport,
-                    description: description
+                    description: videoTitle
                 )
                 // Dismiss on success
                 presentationMode.wrappedValue.dismiss()
