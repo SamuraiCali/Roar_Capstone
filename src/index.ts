@@ -7,7 +7,7 @@ import cookieParser from "cookie-parser";
 import type { Request, Response } from "express";
 import videoRoutes from "./routes/videoRoutes";
 import authRoutes from "./routes/authRoutes";
-import { setupDB } from "./config/setupDB";
+import { testDatabaseConnection } from "./config/setupDB";
 import { auth, AuthRequest } from "./routes/authMiddleware";
 
 const app = express();
@@ -34,7 +34,7 @@ console.log(`BUCKET NAME: ${process.env.S3_BUCKET_NAME}`);
 
 // Start server
 const startServer = async () => {
-  await setupDB();
+  await testDatabaseConnection();
 
   app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}!`);
