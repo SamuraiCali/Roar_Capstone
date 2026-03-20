@@ -27,17 +27,14 @@ app.get("/api/example", (req: Request, res: Response) => {
 
 app.use("/api/videos", videoRoutes);
 
-console.log(`ACCESS KEY: ${process.env.AWS_ACCESS_KEY}`);
-console.log(`SECRET KEY: ${process.env.AWS_SECRET_ACCESS_KEY}`);
 console.log(`BUCKET NAME: ${process.env.S3_BUCKET_NAME}`);
-console.log(`AWS REGION: ${process.env.AWS_REGION}`);
 
 // Start server
 const startServer = async () => {
   // await setupDB();
 
   app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}!`);
+    console.log(`Server is running on http://localhost:${PORT}!!`);
   });
 };
 

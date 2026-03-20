@@ -12,6 +12,6 @@ COPY . .
 EXPOSE 3000
 
 # Run the compiled JS file
-CMD ["npm", "run", "dev"]
+# CMD ["npm", "run", "dev"]
 CMD ["npx", "ts-node-dev", "--respawn", "--transpile-only", "--poll", "src/index.ts"]
 # CMD ["node", "dist/index.js"]
