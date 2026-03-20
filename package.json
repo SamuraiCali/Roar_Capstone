@@ -16,7 +16,7 @@
   },
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "dock": "docker-compose up",
+    "dk": "docker-compose up",
     "build": "tsc",
     "start": "node dist/index.js"
   }
