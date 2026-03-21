@@ -24,6 +24,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "users": "docker exec -it my_postgres psql -U myuser -d mydb -c \"SELECT * FROM users LIMIT 5;\"",
-    "followers": "docker exec -it my_postgres psql -U myuser -d mydb -c \"SELECT * FROM followers LIMIT 5;\""
+    "followers": "docker exec -it my_postgres psql -U myuser -d mydb -c \"SELECT * FROM followers LIMIT 5;\"",
+    "videos": "docker exec -it my_postgres psql -U myuser -d mydb -c \"SELECT * FROM videos LIMIT 5;\""
   }
 }

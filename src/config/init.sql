@@ -16,19 +16,14 @@ VALUES
 CREATE TABLE videos (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
-    -- Store the S3 object key, not the full URL
     key TEXT NOT NULL UNIQUE,
     title TEXT,
     description TEXT,
     duration_seconds INT,
     width INT,
     height INT,
-    likes_count INT DEFAULT 0,
-    comments_count INT DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     
-    -- Optional: foreign key if you have a users table
     CONSTRAINT fk_user
         FOREIGN KEY(user_id)
         REFERENCES users(id)
@@ -79,3 +74,4 @@ CREATE INDEX IF NOT EXISTS idx_following_id ON followers(following_id);
 CREATE INDEX IF NOT EXISTS idx_follower_id ON followers(follower_id);
 
 CREATE INDEX IF NOT EXISTS idx_likes_video_id ON likes(video_id);
+CREATE INDEX IF NOT EXISTS idx_likes_user_video ON likes(user_id, video_id);

@@ -1,9 +1,12 @@
 import { Request, Response } from "express";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { s3Client } from "../config/s3";
+import { pool } from "../config/setupDB";
+import { dbGetVideoKeys } from "../utils/dbUtils";
+import {
+  getPresignedDownloadUrl,
+  getPresignedUploadUrlHelper,
+} from "../utils/S3Utils";
 
-export const getPresignedUrl = async (req: Request, res: Response) => {
+export const getPresignedUploadUrl = async (req: Request, res: Response) => {
   try {
     const { fileName, fileType } = req.query;
 
@@ -19,20 +22,78 @@ export const getPresignedUrl = async (req: Request, res: Response) => {
 
     const key = `videos/${Date.now()}-${fileName}`;
 
-    const command = new PutObjectCommand({
-      Bucket: process.env.S3_BUCKET_NAME!,
-      Key: key,
-      ContentType: fileType as string,
-    });
-
-    const url = await getSignedUrl(s3Client, command, { expiresIn: 120 }); // 60 seconds
+    const url = await getPresignedUploadUrlHelper(key, String(fileType));
 
     res.json({
       uploadUrl: url,
-      key,
+      key: key,
     });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to generate pre-signed URL" });
+  }
+};
+
+export const saveVideoKey = async (req: Request, res: Response) => {
+  try {
+    const {
+      key,
+      title,
+      description,
+      duration_seconds,
+      width,
+      height,
+      user_id,
+    } = req.body;
+
+    if (!key || !user_id) {
+      return res.status(400).json({ error: "key and user_id are required" });
+    }
+
+    const query = `
+      INSERT INTO videos (user_id, key, title, description, duration_seconds, width, height)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *;
+    `;
+
+    const values = [
+      user_id,
+      key,
+      title || null,
+      description || null,
+      duration_seconds || null,
+      width || null,
+      height || null,
+    ];
+
+    const result = await pool.query(query, values);
+
+    res.status(201).json({ video: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getFeed = async (req: Request, res: Response) => {
+  try {
+    const videoKeys = await dbGetVideoKeys();
+
+    if (!videoKeys.length) {
+      res.status(200).json({ videos: [] });
+      return;
+    }
+
+    const videos = await Promise.all(
+      videoKeys.map(async (video) => {
+        const url = await getPresignedDownloadUrl(video.key);
+        return { ...video, url: url };
+      }),
+    );
+
+    res.status(200).json({ videos: videos });
+  } catch (err) {
+    console.log("Error fetching feed: ", err);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
