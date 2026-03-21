@@ -1,15 +1,15 @@
 import { Router } from "express";
 import {
-  getFeed,
-  getPresignedUploadUrl,
-  saveVideoKey,
+  getFeedHandler,
+  getVideoUploadUrlHandler,
+  postVideoHandler,
 } from "../controllers/videoController";
 
 const router = Router();
 
-router.get("/presigned-url", getPresignedUploadUrl);
-router.post("/", saveVideoKey);
-router.get("/", getFeed);
+router.get("/presigned-url", getVideoUploadUrlHandler);
+router.post("/", postVideoHandler);
+router.get("/", getFeedHandler);
 // router.get("/:id", getVideoById)
 
 export default router;

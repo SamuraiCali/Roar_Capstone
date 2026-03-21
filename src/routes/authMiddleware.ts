@@ -10,7 +10,6 @@ export interface AuthRequest extends Request {
   user?: JwtPayload;
 }
 
-//replace with AuthRequest if we want to access user id later
 export const auth = (req: AuthRequest, res: Response, next: NextFunction) => {
   const token = req.cookies?.token;
 

@@ -100,7 +100,14 @@ export const dbGetCommentById = async (id: number) => {
   return result.rows.length > 0 ? result.rows[0] : null;
 };
 
-export const dbDeleteCommentById = async (id: number) => {
-  const result = await pool.query("DELETE FROM comments WHERE id = $1", [id]);
+export const dbDeleteCommentById = async (commentData: {
+  comment_id: number;
+  user_id: number;
+}) => {
+  const { comment_id, user_id } = commentData;
+  const result = await pool.query(
+    "DELETE FROM comments WHERE id = $1 AND user_id = $2",
+    [comment_id, user_id],
+  );
   return result.rowCount;
 };

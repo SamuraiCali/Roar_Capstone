@@ -30,9 +30,9 @@ app.get("/api/protected", auth, (req: AuthRequest, res) => {
   res.json({ message: "You are authenticated", user: req.user });
 });
 
-app.use("/api/videos", videoRoutes);
-app.use("/api/videos", likeRoutes);
-app.use("/api/videos", commentRoutes);
+app.use("/api/videos", auth, videoRoutes);
+app.use("/api/videos", auth, likeRoutes);
+app.use("/api/videos", auth, commentRoutes);
 app.use("/api/auth", authRoutes);
 
 app.use("/api/admin", adminRoutes);

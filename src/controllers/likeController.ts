@@ -1,8 +1,13 @@
 import { Request, Response } from "express";
 import { dbCreateLike, dbDeleteLike } from "../utils/dbUtils";
-export const likeVideo = async (req: Request, res: Response) => {
+import { AuthRequest } from "../routes/authMiddleware";
+
+export const likeVideo = async (req: AuthRequest, res: Response) => {
   try {
-    const { user_id } = req.body;
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const user_id = Number(req.user.id);
     const videoId = req.params.videoId;
 
     if (!user_id || !videoId) {
@@ -21,10 +26,14 @@ export const likeVideo = async (req: Request, res: Response) => {
   }
 };
 
-export const unlikeVideo = async (req: Request, res: Response) => {
+export const unlikeVideo = async (req: AuthRequest, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const user_id = Number(req.user.id);
     const videoId = req.params.videoId;
-    const { user_id } = req.body;
 
     if (!videoId || !user_id) {
       res.status(400).json({ error: "videoId and user_id required" });

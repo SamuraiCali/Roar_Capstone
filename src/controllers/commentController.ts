@@ -5,11 +5,17 @@ import {
   dbGetCommentById,
   dbDeleteCommentById,
 } from "../utils/dbUtils";
+import { AuthRequest } from "../routes/authMiddleware";
 
-export const postCommentHandler = async (req: Request, res: Response) => {
+export const postCommentHandler = async (req: AuthRequest, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const user_id = Number(req.user.id);
     const videoId = req.params.videoId;
-    const { user_id, content, parent_comment_id } = req.body;
+    const { content, parent_comment_id } = req.body;
 
     if (!videoId || !user_id || !content) {
       return res.status(400).json({
@@ -66,14 +72,22 @@ export const getCommentsHandler = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteCommentHandler = async (req: Request, res: Response) => {
+export const deleteCommentHandler = async (req: AuthRequest, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const user_id = Number(req.user.id);
     const { comment_id } = req.body;
     if (!comment_id) {
       return res.status(400).json({ error: "Comment ID required" });
     }
 
-    const deleted = await dbDeleteCommentById(comment_id);
+    const deleted = await dbDeleteCommentById({
+      comment_id: comment_id,
+      user_id: user_id,
+    });
 
     if (deleted === 0) {
       return res.status(400).json({ error: "Invalid comment (doesn't exist)" });

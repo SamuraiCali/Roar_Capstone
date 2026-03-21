@@ -5,8 +5,9 @@ import {
   getPresignedDownloadUrl,
   getPresignedUploadUrlHelper,
 } from "../utils/S3Utils";
+import { AuthRequest } from "../routes/authMiddleware";
 
-export const getPresignedUploadUrl = async (req: Request, res: Response) => {
+export const getVideoUploadUrlHandler = async (req: Request, res: Response) => {
   try {
     const { fileName, fileType } = req.query;
 
@@ -34,17 +35,16 @@ export const getPresignedUploadUrl = async (req: Request, res: Response) => {
   }
 };
 
-export const saveVideoKey = async (req: Request, res: Response) => {
+export const postVideoHandler = async (req: AuthRequest, res: Response) => {
   try {
-    const {
-      key,
-      title,
-      description,
-      duration_seconds,
-      width,
-      height,
-      user_id,
-    } = req.body;
+    const { key, title, description, duration_seconds, width, height } =
+      req.body;
+
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const user_id = Number(req.user.id);
 
     if (!key || !user_id) {
       return res.status(400).json({ error: "key and user_id are required" });
@@ -75,8 +75,12 @@ export const saveVideoKey = async (req: Request, res: Response) => {
   }
 };
 
-export const getFeed = async (req: Request, res: Response) => {
-  const { user_id } = req.body;
+export const getFeedHandler = async (req: AuthRequest, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const user_id = Number(req.user.id);
 
   if (!user_id) {
     return res.status(400).json({ error: "User ID Required" });
