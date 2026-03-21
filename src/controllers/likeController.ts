@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { dbLikeVideo, dbUnlikeVideo } from "../utils/dbUtils";
+import { dbCreateLike, dbDeleteLike } from "../utils/dbUtils";
 export const likeVideo = async (req: Request, res: Response) => {
   try {
     const { user_id } = req.body;
@@ -10,7 +10,10 @@ export const likeVideo = async (req: Request, res: Response) => {
       return;
     }
 
-    const likeResult = await dbLikeVideo(Number(videoId), user_id);
+    const likeResult = await dbCreateLike({
+      userId: user_id,
+      videoId: Number(videoId),
+    });
     res.json({ like: likeResult });
   } catch (err) {
     console.log("Error while liking video: ", err);
@@ -28,7 +31,10 @@ export const unlikeVideo = async (req: Request, res: Response) => {
       return;
     }
 
-    const deleted = await dbUnlikeVideo(Number(videoId), user_id);
+    const deleted = await dbDeleteLike({
+      userId: user_id,
+      videoId: Number(videoId),
+    });
     if (deleted === 0) {
       res
         .status(500)

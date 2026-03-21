@@ -5,7 +5,12 @@ import {
   DB_COMMENT_WITH_REPLY_COUNT,
   DB_VIDEO,
 } from "../models/DatabaseTypes";
-export const dbLikeVideo = async (videoId: number, userId: number) => {
+
+export const dbCreateLike = async (likeData: {
+  userId: number;
+  videoId: number;
+}) => {
+  const { userId, videoId } = likeData;
   const result = await pool.query(
     "INSERT INTO likes (user_id, video_id) VALUES ($1, $2) RETURNING *;",
     [userId, videoId],
@@ -13,7 +18,11 @@ export const dbLikeVideo = async (videoId: number, userId: number) => {
   return result.rows[0];
 };
 
-export const dbUnlikeVideo = async (videoId: number, userId: number) => {
+export const dbDeleteLike = async (likeData: {
+  userId: number;
+  videoId: number;
+}) => {
+  const { userId, videoId } = likeData;
   const result = await pool.query(
     "DELETE FROM likes WHERE user_id = $1 AND video_id = $2",
     [userId, videoId],
@@ -72,6 +81,6 @@ export const dbGetCommentById = async (id: number) => {
 };
 
 export const dbDeleteCommentById = async (id: number) => {
-  const result = await pool.query("DELETE FROM comments WHERE id = $1", [id])
-  return result.rowCount
-}
+  const result = await pool.query("DELETE FROM comments WHERE id = $1", [id]);
+  return result.rowCount;
+};
