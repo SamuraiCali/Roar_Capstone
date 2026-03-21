@@ -9,8 +9,10 @@ CREATE TABLE IF NOT EXISTS users (
 INSERT INTO users (username, email, password)
 VALUES
 ('jordan', 'jordan@fiu.edu', 'hashedpassword1'),
+('chains', 'chains@fiu.edu', 'hashedpassword3'),
 ('lebon', 'lebon@fiu.edu', 'hashedpassword2'),
-('chains', 'chains@fiu.edu', 'hashedpassword3');
+('sokol', 'sokol@fiu.edu', 'hashedpassword2'),
+('hoxton', 'hoxton@fiu.edu', 'hashedpassword2');
 
 
 CREATE TABLE videos (
@@ -46,6 +48,12 @@ CREATE TABLE IF NOT EXISTS likes (
     CONSTRAINT unique_like UNIQUE(user_id, video_id)
 );
 
+INSERT INTO likes (user_id, video_id) 
+VALUES 
+(1, 1),
+(2, 1),
+(3, 1);
+
 CREATE TABLE IF NOT EXISTS comments (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
@@ -57,6 +65,12 @@ CREATE TABLE IF NOT EXISTS comments (
     CONSTRAINT fk_comment_video FOREIGN KEY(video_id) REFERENCES videos(id) ON DELETE CASCADE,
     CONSTRAINT fk_comment_comment FOREIGN KEY (parent_comment_id) REFERENCES comments(id) ON DELETE CASCADE
 );
+
+INSERT INTO comments (user_id, video_id, content, parent_comment_id)
+VALUES
+(1, 1, 'Larp larp larp', NULL),
+(2, 1, 'shut up dimwit', 1),
+(3, 1, 'No, no he has a point', 1);
 
 CREATE INDEX IF NOT EXISTS idx_comments_video_id ON comments(video_id);
 CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON comments(parent_comment_id);

@@ -30,13 +30,33 @@ export const dbDeleteLike = async (likeData: {
   return result.rowCount;
 };
 
-export const dbGetVideoKeys = async (
-  limit: number = 5,
-): Promise<DB_VIDEO[]> => {
-  const result: QueryResult<DB_VIDEO> = await pool.query(
-    "SELECT * FROM videos LIMIT $1",
-    [limit],
+export const dbGetFeedVideos = async (feedData: {
+  user_id: number;
+  limit: number;
+}) => {
+  const { user_id, limit } = feedData;
+  const result = await pool.query(
+    `
+    SELECT 
+      v.*,
+      COUNT(DISTINCT l.user_id) AS like_count,
+      COUNT(DISTINCT c.id) AS comment_count,
+      EXISTS (
+        SELECT 1
+        FROM likes l2
+        WHERE l2.video_id = v.id
+          AND l2.user_id = $2
+      ) AS is_liked
+    FROM videos v
+    LEFT JOIN likes l ON l.video_id = v.id
+    LEFT JOIN comments c ON c.video_id = v.id
+    GROUP BY v.id
+    ORDER BY v.created_at DESC
+    LIMIT $1
+    `,
+    [limit, user_id],
   );
+
   return result.rows;
 };
 

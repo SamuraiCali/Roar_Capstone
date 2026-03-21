@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { pool } from "../config/setupDB";
-import { dbGetVideoKeys } from "../utils/dbUtils";
+import { dbGetFeedVideos } from "../utils/dbUtils";
 import {
   getPresignedDownloadUrl,
   getPresignedUploadUrlHelper,
@@ -76,16 +76,22 @@ export const saveVideoKey = async (req: Request, res: Response) => {
 };
 
 export const getFeed = async (req: Request, res: Response) => {
-  try {
-    const videoKeys = await dbGetVideoKeys();
+  const { user_id } = req.body;
 
-    if (!videoKeys.length) {
+  if (!user_id) {
+    return res.status(400).json({ error: "User ID Required" });
+  }
+
+  try {
+    const videosFromDb = await dbGetFeedVideos({ user_id: user_id, limit: 3 });
+
+    if (!videosFromDb.length) {
       res.status(200).json({ videos: [] });
       return;
     }
 
     const videos = await Promise.all(
-      videoKeys.map(async (video) => {
+      videosFromDb.map(async (video) => {
         const url = await getPresignedDownloadUrl(video.key);
         return { ...video, url: url };
       }),
