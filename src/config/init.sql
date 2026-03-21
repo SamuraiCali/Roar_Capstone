@@ -30,6 +30,9 @@ CREATE TABLE videos (
         ON DELETE CASCADE
 );
 
+INSERT INTO videos (user_id, key, title, description) VALUES 
+(1, 'videos/1774055669348-file_example_MP4_480_1_5MG.mp4', 'My Example Video', 'Mediatok Larp Tutorial');
+
 CREATE INDEX idx_videos_created_at
 ON videos(created_at DESC);
 
@@ -48,10 +51,15 @@ CREATE TABLE IF NOT EXISTS comments (
     user_id INT NOT NULL,
     video_id INT NOT NULL,
     content TEXT NOT NULL,
+    parent_comment_id INTEGER NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     CONSTRAINT fk_comment_user FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT fk_comment_video FOREIGN KEY(video_id) REFERENCES videos(id) ON DELETE CASCADE
+    CONSTRAINT fk_comment_video FOREIGN KEY(video_id) REFERENCES videos(id) ON DELETE CASCADE,
+    CONSTRAINT fk_comment_comment FOREIGN KEY (parent_comment_id) REFERENCES comments(id) ON DELETE CASCADE
 );
+
+CREATE INDEX IF NOT EXISTS idx_comments_video_id ON comments(video_id);
+CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON comments(parent_comment_id);
 
 CREATE TABLE IF NOT EXISTS followers (
     id SERIAL PRIMARY KEY,

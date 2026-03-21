@@ -9,6 +9,7 @@ import videoRoutes from "./routes/videoRoutes";
 import authRoutes from "./routes/authRoutes";
 import likeRoutes from "./routes/likeRoutes";
 import adminRoutes from "./routes/adminRoutes";
+import commentRoutes from "./routes/commentRoutes";
 import { testDatabaseConnection } from "./config/setupDB";
 import { auth, AuthRequest } from "./routes/authMiddleware";
 
@@ -31,13 +32,13 @@ app.get("/api/protected", auth, (req: AuthRequest, res) => {
 
 app.use("/api/videos", videoRoutes);
 app.use("/api/videos", likeRoutes);
+app.use("/api/videos", commentRoutes);
 app.use("/api/auth", authRoutes);
 
 app.use("/api/admin", adminRoutes);
 
 console.log(`BUCKET NAME: ${process.env.S3_BUCKET_NAME}`);
 
-// Start server
 const startServer = async () => {
   await testDatabaseConnection();
 

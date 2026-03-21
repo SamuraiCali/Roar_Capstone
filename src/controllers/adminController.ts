@@ -34,3 +34,13 @@ export const getLikesAdmin = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+export const getCommentsAdmin = async (req: Request, res: Response) => {
+  try {
+    const result = await getTable("comments");
+    res.status(200).json({ comments: result.rows });
+  } catch (err) {
+    console.log("Error while fetching comments table: ", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
