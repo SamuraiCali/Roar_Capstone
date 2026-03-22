@@ -64,6 +64,9 @@ VALUES
 (2, 1),
 (3, 1);
 
+CREATE INDEX IF NOT EXISTS idx_likes_video_id ON likes(video_id);
+CREATE INDEX IF NOT EXISTS idx_likes_user_video ON likes(user_id, video_id);
+
 CREATE TABLE IF NOT EXISTS comments (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
@@ -105,8 +108,6 @@ VALUES
 CREATE INDEX IF NOT EXISTS idx_following_id ON followers(following_id);
 CREATE INDEX IF NOT EXISTS idx_follower_id ON followers(follower_id);
 
-CREATE INDEX IF NOT EXISTS idx_likes_video_id ON likes(video_id);
-CREATE INDEX IF NOT EXISTS idx_likes_user_video ON likes(user_id, video_id);
 
 CREATE TABLE IF NOT EXISTS tags (
     id SERIAL PRIMARY KEY,
@@ -122,25 +123,27 @@ INSERT INTO tags (name) VALUES
 ('videogames');
 
 CREATE TABLE IF NOT EXISTS video_tags (
-    video_id INT REFERENCES videos(id),
-    tag_id INT REFERENCES tags(id),
+    video_id INT REFERENCES videos(id) ON DELETE CASCADE,
+    tag_id INT REFERENCES tags(id) ON DELETE CASCADE,
     PRIMARY KEY (video_id, tag_id)
-    -- SHOULD THERE BE AN ON DELETE CASCADE IF EITHER OF THESE ARE IDS ARE DELETED?
 );
 INSERT INTO video_tags (video_id, tag_id) VALUES
 (1, 1),
 (2, 1),
 (3, 2);
 
+CREATE INDEX idx_video_tags_video_id ON video_tags(video_id);
+CREATE INDEX idx_video_tags_tag_id ON video_tags(tag_id);
+
 CREATE TABLE IF NOT EXISTS user_tag_preferences (
-  user_id INT,
-  tag_id INT,
+  user_id INT REFERENCES users(id) ON DELETE CASCADE,
+  tag_id INT REFERENCES tags(id) ON DELETE CASCADE,
   score INT DEFAULT 0,
   PRIMARY KEY (user_id, tag_id)
 );
 INSERT INTO user_tag_preferences (user_id, tag_id, score) VALUES 
 (1, 1, 10); --give basketballenjoyer a score of 10 on the basketball tag
 
-CREATE INDEX idx_video_tags_video_id ON video_tags(video_id);
-CREATE INDEX idx_video_tags_tag_id ON video_tags(tag_id);
+
 CREATE INDEX idx_user_tag_prefs_user_id ON user_tag_preferences(user_id);
+CREATE INDEX idx_user_tag_prefs_tag_id ON user_tag_preferences(tag_id);
