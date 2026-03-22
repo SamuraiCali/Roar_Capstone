@@ -38,7 +38,11 @@ CREATE TABLE videos (
 );
 
 INSERT INTO videos (user_id, key, title, description) VALUES 
-(1, 'videos/1774055669348-file_example_MP4_480_1_5MG.mp4', 'My Example Video', 'Mediatok Larp Tutorial');
+(1, 'videos/1774055669348-file_example_MP4_480_1_5MG.mp4', 'My Example Video', 'Mediatok Larp Tutorial'),
+(2, 'videos/1774159425783-basketball_dunk.mp4', 'Dunked on', 'Anybody can get it 🤦🏾‍♂️ W camera woman'),
+(2, 'videos/1774159834890-volleyball_rally.mp4', 'Volleyball Rally', 'POV: you’re right in the middle of the rally at FIU 🏐');
+
+
 
 CREATE INDEX idx_videos_created_at
 ON videos(created_at DESC);
