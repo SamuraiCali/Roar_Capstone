@@ -37,29 +37,163 @@ export const dbGetFeedVideos = async (feedData: {
   limit: number;
 }) => {
   const { user_id, limit } = feedData;
+
   const result = await pool.query(
     `
+  WITH tag_scores AS (
     SELECT 
-      v.*,
-      u.username,
-      COUNT(DISTINCT l.user_id) AS like_count,
-      COUNT(DISTINCT c.id) AS comment_count,
-      EXISTS (
-        SELECT 1
-        FROM likes l2
-        WHERE l2.video_id = v.id
-          AND l2.user_id = $2
-      ) AS is_liked
-    FROM videos v
-    LEFT JOIN users u ON v.user_id = u.id
-    LEFT JOIN likes l ON l.video_id = v.id
-    LEFT JOIN comments c ON c.video_id = v.id
-    GROUP BY v.id, u.id
-    ORDER BY v.created_at DESC
-    LIMIT $1
-    `,
+      vt.video_id,
+      COALESCE(SUM(utp.score), 0) AS tag_score
+    FROM video_tags vt
+    LEFT JOIN user_tag_preferences utp
+      ON utp.tag_id = vt.tag_id
+      AND utp.user_id = $2
+    GROUP BY vt.video_id
+  ),
+
+  like_counts AS (
+    SELECT 
+      video_id,
+      COUNT(*) AS like_count
+    FROM likes
+    GROUP BY video_id
+  ),
+
+  comment_counts AS (
+    SELECT 
+      video_id,
+      COUNT(*) AS comment_count
+    FROM comments
+    GROUP BY video_id
+  )
+
+  SELECT 
+    v.*,
+    u.username,
+
+    COALESCE(lc.like_count, 0) AS like_count,
+    COALESCE(cc.comment_count, 0) AS comment_count,
+
+    COALESCE(ts.tag_score, 0) * 10 AS tag_component,
+    COALESCE(lc.like_count, 0) * 2 AS like_component,
+    COALESCE(cc.comment_count, 0) AS comment_component,
+
+    EXISTS (
+      SELECT 1
+      FROM likes l2
+      WHERE l2.video_id = v.id
+        AND l2.user_id = $2
+    ) AS is_liked,
+
+    COALESCE(ts.tag_score, 0) AS tag_score,
+
+    (
+      COALESCE(ts.tag_score, 0) * 10 +
+      COALESCE(lc.like_count, 0) * 2 +
+      COALESCE(cc.comment_count, 0) * 1 +
+      CASE WHEN f.follower_id IS NOT NULL THEN 50 ELSE 0 END +
+      (RANDOM() * 5) +
+      10 * EXP(-EXTRACT(EPOCH FROM (NOW() - v.created_at)) / 172800) -- new videos gain 10 score, over 2 days decay to 0
+    ) AS score
+
+  FROM videos v
+
+  LEFT JOIN users u ON v.user_id = u.id
+
+  LEFT JOIN tag_scores ts ON ts.video_id = v.id
+  LEFT JOIN like_counts lc ON lc.video_id = v.id
+  LEFT JOIN comment_counts cc ON cc.video_id = v.id
+
+  LEFT JOIN followers f 
+    ON f.following_id = v.user_id 
+    AND f.follower_id = $2
+
+
+  ORDER BY score DESC
+  LIMIT $1
+  `,
     [limit, user_id],
   );
+
+  // const result = await pool.query(
+  //   `
+  // SELECT
+  //   v.*,
+  //   u.username,
+
+  //   COUNT(DISTINCT l.user_id) AS like_count,
+  //   COUNT(DISTINCT c.id) AS comment_count,
+
+  //   EXISTS (
+  //     SELECT 1
+  //     FROM likes l2
+  //     WHERE l2.video_id = v.id
+  //       AND l2.user_id = $2
+  //   ) AS is_liked,
+
+  //   COALESCE(SUM(utp.score), 0) AS tag_score,
+
+  //   CASE
+  //     WHEN f.follower_id IS NOT NULL THEN 1
+  //     ELSE 0
+  //   END AS is_followed,
+
+  //   (
+  //     COALESCE(SUM(utp.score), 0) * 10 +
+  //     COUNT(DISTINCT l.user_id) * 2 +
+  //     COUNT(DISTINCT c.id) * 1 +
+  //     CASE WHEN f.follower_id IS NOT NULL THEN 50 ELSE 0 END +
+  //     (RANDOM() * 5) +
+  //     EXTRACT(EPOCH FROM (NOW() - v.created_at)) * -0.01
+  //   ) AS score
+
+  // FROM videos v
+
+  // LEFT JOIN users u ON v.user_id = u.id
+
+  // LEFT JOIN likes l ON l.video_id = v.id
+  // LEFT JOIN comments c ON c.video_id = v.id
+
+  // LEFT JOIN video_tags vt ON vt.video_id = v.id
+  // LEFT JOIN user_tag_preferences utp
+  //   ON utp.tag_id = vt.tag_id
+  //   AND utp.user_id = $2
+
+  // LEFT JOIN followers f
+  //   ON f.following_id = v.user_id
+  //   AND f.follower_id = $2
+
+  // GROUP BY v.id, u.id, f.follower_id
+
+  // ORDER BY score DESC
+  // LIMIT $1
+  // `,
+  //   [limit, user_id],
+  // );
+
+  // const result = await pool.query(
+  //   `
+  //   SELECT
+  //     v.*,
+  //     u.username,
+  //     COUNT(DISTINCT l.user_id) AS like_count,
+  //     COUNT(DISTINCT c.id) AS comment_count,
+  //     EXISTS (
+  //       SELECT 1
+  //       FROM likes l2
+  //       WHERE l2.video_id = v.id
+  //         AND l2.user_id = $2
+  //     ) AS is_liked
+  //   FROM videos v
+  //   LEFT JOIN users u ON v.user_id = u.id
+  //   LEFT JOIN likes l ON l.video_id = v.id
+  //   LEFT JOIN comments c ON c.video_id = v.id
+  //   GROUP BY v.id, u.id
+  //   ORDER BY v.created_at DESC
+  //   LIMIT $1
+  //   `,
+  //   [limit, user_id],
+  // );
 
   return result.rows;
 };

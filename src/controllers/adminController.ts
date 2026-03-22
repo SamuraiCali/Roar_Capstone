@@ -55,3 +55,39 @@ export const getFollowersAdmin = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+export const getTagsAdmin = async (req: Request, res: Response) => {
+  try {
+    console.log("Attempting to fetch tags");
+    const result = await getTable("tags");
+    res.status(200).json({ tags: result.rows });
+  } catch (err) {
+    console.log("Error while fetching tags table: ", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+export const getVideoTagsAdmin = async (req: Request, res: Response) => {
+  try {
+    console.log("Attempting to fetch video tags");
+    const result = await getTable("video_tags");
+    res.status(200).json({ comments: result.rows });
+  } catch (err) {
+    console.log("Error while fetching video_tags table: ", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+export const getUserTagPreferencesAdmin = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    console.log("Attempting to fetch user_tag_preferences");
+    const result = await getTable("user_tag_preferences");
+    res.status(200).json({ user_tag_preferences: result.rows });
+  } catch (err) {
+    console.log("Error while fetching user_tag_preferences table: ", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};

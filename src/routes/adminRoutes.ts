@@ -3,8 +3,11 @@ import {
   getCommentsAdmin,
   getFollowersAdmin,
   getLikesAdmin,
+  getTagsAdmin,
   getUsersAdmin,
+  getUserTagPreferencesAdmin,
   getVideosAdmin,
+  getVideoTagsAdmin,
 } from "../controllers/adminController";
 
 const router = Router();
@@ -14,5 +17,8 @@ router.get("/videos", getVideosAdmin);
 router.get("/likes", getLikesAdmin);
 router.get("/comments", getCommentsAdmin);
 router.get("/followers", getFollowersAdmin);
+router.get("/tags", getTagsAdmin);
+router.get("/video_tags", getVideoTagsAdmin);
+router.get("/user_tag_preferences", getUserTagPreferencesAdmin);
 
 export default router;

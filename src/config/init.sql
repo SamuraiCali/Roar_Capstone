@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 INSERT INTO users (username, email, password)
 VALUES
+('basketballenjoyer', 'basketball@fiu.edu', 'bbb83ee7162556ae010069ad0143560c:e9ad462accac9c16a1e906f30c19e6ab5f1ca0ebf2d017fbf6887e3c3a14d1af15e50067eaa17ac6970e32cf875e48513fa02004a6d0532a76cd309ca4714a30'),
 ('jordan', 'jordan@fiu.edu', 'hashedpassword1'),
 ('chains', 'chains@fiu.edu', 'hashedpassword3'),
 ('lebon', 'lebon@fiu.edu', 'hashedpassword2'),
@@ -106,3 +107,40 @@ CREATE INDEX IF NOT EXISTS idx_follower_id ON followers(follower_id);
 
 CREATE INDEX IF NOT EXISTS idx_likes_video_id ON likes(video_id);
 CREATE INDEX IF NOT EXISTS idx_likes_user_video ON likes(user_id, video_id);
+
+CREATE TABLE IF NOT EXISTS tags (
+    id SERIAL PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL
+);
+
+INSERT INTO tags (name) VALUES
+('basketball'),
+('volleyball'),
+('baseball'),
+('soccer'),
+('billiards'),
+('videogames');
+
+CREATE TABLE IF NOT EXISTS video_tags (
+    video_id INT REFERENCES videos(id),
+    tag_id INT REFERENCES tags(id),
+    PRIMARY KEY (video_id, tag_id)
+    -- SHOULD THERE BE AN ON DELETE CASCADE IF EITHER OF THESE ARE IDS ARE DELETED?
+);
+INSERT INTO video_tags (video_id, tag_id) VALUES
+(1, 1),
+(2, 1),
+(3, 2);
+
+CREATE TABLE IF NOT EXISTS user_tag_preferences (
+  user_id INT,
+  tag_id INT,
+  score INT DEFAULT 0,
+  PRIMARY KEY (user_id, tag_id)
+);
+INSERT INTO user_tag_preferences (user_id, tag_id, score) VALUES 
+(1, 1, 10); --give basketballenjoyer a score of 10 on the basketball tag
+
+CREATE INDEX idx_video_tags_video_id ON video_tags(video_id);
+CREATE INDEX idx_video_tags_tag_id ON video_tags(tag_id);
+CREATE INDEX idx_user_tag_prefs_user_id ON user_tag_preferences(user_id);

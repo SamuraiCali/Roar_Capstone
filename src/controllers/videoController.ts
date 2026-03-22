@@ -87,7 +87,7 @@ export const getFeedHandler = async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    const videosFromDb = await dbGetFeedVideos({ user_id: user_id, limit: 3 });
+    const videosFromDb = await dbGetFeedVideos({ user_id: user_id, limit: 5 });
 
     if (!videosFromDb.length) {
       res.status(200).json({ videos: [] });
