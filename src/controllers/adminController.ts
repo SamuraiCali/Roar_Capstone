@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { pool } from "../config/setupDB";
+import { pool } from "../config/db";
 
 const getTable = async (table: string) => {
   return await pool.query(`SELECT * FROM ${table}`);
@@ -41,6 +41,17 @@ export const getCommentsAdmin = async (req: Request, res: Response) => {
     res.status(200).json({ comments: result.rows });
   } catch (err) {
     console.log("Error while fetching comments table: ", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+export const getFollowersAdmin = async (req: Request, res: Response) => {
+  try {
+    console.log("Attempting to fetch followers");
+    const result = await getTable("followers");
+    res.status(200).json({ comments: result.rows });
+  } catch (err) {
+    console.log("Error while fetching followers table: ", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };

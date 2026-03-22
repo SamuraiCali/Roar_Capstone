@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { pool } from "../config/setupDB";
+import { pool } from "../config/db";
 import { dbGetFeedVideos } from "../utils/dbUtils";
 import {
   getPresignedDownloadUrl,

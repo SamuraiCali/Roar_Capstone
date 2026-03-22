@@ -1,6 +1,6 @@
 // src/controllers/authController.ts
 import { Request, Response } from "express";
-import { pool } from "../config/setupDB";
+import { pool } from "../config/db";
 import { hashPassword, verifyPassword } from "../utils/passwordUtils";
 import { DB_USER } from "../models/DatabaseTypes";
 import jwt from "jsonwebtoken";

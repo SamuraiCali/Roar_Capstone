@@ -10,7 +10,8 @@ import authRoutes from "./routes/authRoutes";
 import likeRoutes from "./routes/likeRoutes";
 import adminRoutes from "./routes/adminRoutes";
 import commentRoutes from "./routes/commentRoutes";
-import { testDatabaseConnection } from "./config/setupDB";
+import followerRoutes from "./routes/followerRoutes";
+import { testDatabaseConnection } from "./config/db";
 import { auth, AuthRequest } from "./routes/authMiddleware";
 
 const app = express();
@@ -33,6 +34,7 @@ app.get("/api/protected", auth, (req: AuthRequest, res) => {
 app.use("/api/videos", auth, videoRoutes);
 app.use("/api/videos", auth, likeRoutes);
 app.use("/api/videos", auth, commentRoutes);
+app.use("/api/users", auth, followerRoutes);
 app.use("/api/auth", authRoutes);
 
 app.use("/api/admin", adminRoutes);

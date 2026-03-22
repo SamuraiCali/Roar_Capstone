@@ -1,9 +1,11 @@
 import { QueryResult } from "pg";
-import { pool } from "../config/setupDB";
+import { pool } from "../config/db";
 import {
   DB_COMMENT,
   DB_COMMENT_WITH_REPLY_COUNT,
-  DB_VIDEO,
+  DB_FOLLOW,
+  DB_FOLLOWER,
+  DB_USER,
 } from "../models/DatabaseTypes";
 
 export const dbCreateLike = async (likeData: {
@@ -110,4 +112,60 @@ export const dbDeleteCommentById = async (commentData: {
     [comment_id, user_id],
   );
   return result.rowCount;
+};
+
+export const dbGetFollowersFromUsername = async (username: string) => {
+  const query = `
+    SELECT u.id, u.username
+    FROM users u
+    JOIN followers f ON u.id = f.follower_id
+    JOIN users target ON f.following_id = target.id
+    WHERE target.username = $1;`;
+  const result: QueryResult<DB_FOLLOWER> = await pool.query(query, [username]);
+  return result.rows;
+};
+
+export const dbGetFollowersCountFromUsername = async (username: string) => {
+  const result = await pool.query(
+    "SELECT COUNT(*) FROM followers WHERE following_id = (SELECT id FROM users WHERE username = $1)",
+    [username],
+  );
+  return Number(result.rows[0].count);
+};
+
+export const dbCreateFollow = async (followData: {
+  follower_id: number;
+  following_username: string;
+}) => {
+  const { follower_id, following_username } = followData;
+  const result = await pool.query(
+    `INSERT INTO followers (follower_id, following_id)
+      SELECT $1, id
+      FROM users
+      WHERE username = $2
+      ON CONFLICT DO NOTHING
+      RETURNING *;`,
+    [follower_id, following_username],
+  );
+  return result;
+};
+
+export const dbDeleteFollow = async (followData: {
+  follower_id: number;
+  following_username: string;
+}) => {
+  const { follower_id, following_username } = followData;
+  const result = await pool.query(
+    "DELETE FROM followers WHERE follower_id = $1 AND following_id = (SELECT id FROM users WHERE username = $2);",
+    [follower_id, following_username],
+  );
+  return result.rowCount;
+};
+
+export const dbGetUserByUsername = async (username: string) => {
+  const result: QueryResult<DB_USER> = await pool.query(
+    "SELECT * FROM users WHERE username = $1",
+    [username],
+  );
+  return result;
 };

@@ -28,3 +28,15 @@ export type DB_COMMENT = {
 };
 
 export type DB_COMMENT_WITH_REPLY_COUNT = DB_COMMENT & { reply_count: number };
+
+export type DB_FOLLOW = {
+  id: number;
+  follower_id: number;
+  following_id: number;
+  created_at: Date;
+};
+
+export type DB_FOLLOWER = {
+  id: number;
+  username: number;
+};
