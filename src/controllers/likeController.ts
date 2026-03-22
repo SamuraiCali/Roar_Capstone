@@ -45,9 +45,7 @@ export const unlikeVideo = async (req: AuthRequest, res: Response) => {
       videoId: Number(videoId),
     });
     if (deleted === 0) {
-      res
-        .status(500)
-        .json({ error: "Error deleting video, no videos deleted" });
+      res.status(404).json({ error: "Like does not exist" });
       return;
     }
     res.status(200).json({ message: "Video successfully unliked" });

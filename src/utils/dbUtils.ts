@@ -41,6 +41,7 @@ export const dbGetFeedVideos = async (feedData: {
     `
     SELECT 
       v.*,
+      u.username,
       COUNT(DISTINCT l.user_id) AS like_count,
       COUNT(DISTINCT c.id) AS comment_count,
       EXISTS (
@@ -50,9 +51,10 @@ export const dbGetFeedVideos = async (feedData: {
           AND l2.user_id = $2
       ) AS is_liked
     FROM videos v
+    LEFT JOIN users u ON v.user_id = u.id
     LEFT JOIN likes l ON l.video_id = v.id
     LEFT JOIN comments c ON c.video_id = v.id
-    GROUP BY v.id
+    GROUP BY v.id, u.id
     ORDER BY v.created_at DESC
     LIMIT $1
     `,

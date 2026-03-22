@@ -12,6 +12,11 @@ VALUES
 ('chains', 'chains@fiu.edu', 'hashedpassword3'),
 ('lebon', 'lebon@fiu.edu', 'hashedpassword2'),
 ('sokol', 'sokol@fiu.edu', 'hashedpassword2'),
+('houston', 'houston@fiu.edu', 'hashedpassword2'),
+('wolf', 'wolf@fiu.edu', 'hashedpassword2'),
+('jimmy', 'jimmy@fiu.edu', 'hashedpassword2'),
+('rust', 'rust@fiu.edu', 'hashedpassword2'),
+('sydney', 'sydney@fiu.edu', 'hashedpassword2'),
 ('hoxton', 'hoxton@fiu.edu', 'hashedpassword2');
 
 
