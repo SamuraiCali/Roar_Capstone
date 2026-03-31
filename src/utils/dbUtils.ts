@@ -8,6 +8,27 @@ import {
     DB_USER,
 } from "../models/DatabaseTypes";
 
+export const dbCreateUser = async (userData: {
+    username: string;
+    email: string;
+    password: string;
+}) => {
+    const { username, email, password } = userData;
+    const result: QueryResult<DB_USER> = await pool.query(
+        "INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING *",
+        [username, email, password],
+    );
+    return result.rowCount ? result.rows[0] : null;
+};
+
+export const dbGetUserByEmail = async (email: string) => {
+    const result: QueryResult<DB_USER> = await pool.query(
+        "SELECT * FROM users WHERE email = $1",
+        [email],
+    );
+    return result.rowCount ? result.rows[0] : null;
+};
+
 export const dbCreateLike = async (likeData: {
     userId: number;
     videoId: number;
