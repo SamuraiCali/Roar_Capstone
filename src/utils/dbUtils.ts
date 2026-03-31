@@ -178,10 +178,14 @@ export const dbGetFeedVideos = async (feedData: {
 };
 
 export const dbGetVideoById = async (id: number) => {
-    const result: QueryResult<DB_VIDEO> = await pool.query(
-        "SELECT * FROM videos WHERE id = $1",
-        [id],
-    );
+    const query = `
+    SELECT 
+        v.*,
+        (SELECT COUNT(*) FROM likes l WHERE l.video_id = v.id) AS like_count,
+        (SELECT COUNT(*) FROM comments c WHERE c.video_id = v.id) AS comment_count
+    FROM videos v
+    WHERE v.id = $1;`;
+    const result: QueryResult<DB_VIDEO> = await pool.query(query, [id]);
     return result.rowCount ? result.rows[0] : null;
 };
 
