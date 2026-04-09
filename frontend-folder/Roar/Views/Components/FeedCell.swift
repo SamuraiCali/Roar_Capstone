@@ -1,6 +1,6 @@
 import SwiftUI
-@preconcurrency import Amplify
-@preconcurrency internal import AWSPluginsCore
+
+struct EmptyResponse: Codable {}
 
 struct FeedCell: View {
     let post: Post
@@ -11,10 +11,9 @@ struct FeedCell: View {
     
     @State private var isLiked = false
     @State private var currentLikes: Int = 0
-    @State private var currentUserId: String?
     @State private var showingComments = false
     @State private var currentComments: Int = 0
-    @State private var authorId: String?
+    @State private var authorId: Int?
     @State private var authorUsername: String = "roar_creator"
     @State private var isPausedByUser = false
     
@@ -24,7 +23,8 @@ struct FeedCell: View {
             Color.black
                 .edgesIgnoringSafeArea(.all)
             
-            VideoPlayerView(videoKey: post.videoURL, isPlaying: Binding(
+            // `videoURL` from AWS Amplify is now `url` from Backend
+            VideoPlayerView(videoKey: post.url, isPlaying: Binding(
                 get: { isPlaying && !isPausedByUser && selectedTab == owningTab && !showingComments },
                 set: { _ in }
             ))
@@ -62,19 +62,16 @@ struct FeedCell: View {
                             .foregroundColor(.white)
                             .shadow(radius: 1)
                         
-                        Text(post.description)
+                        Text(post.description ?? "")
                             .font(.subheadline)
                             .foregroundColor(.white)
                             .lineLimit(2)
                             .shadow(radius: 1)
                         
-                        // Tags
+                        // Tags currently simplified in the unified model
                         HStack {
-                            if let team = post.teamTag, !team.isEmpty {
-                                Text("#\(team)")
-                            }
-                            if let sport = post.sportTag, !sport.isEmpty {
-                                Text("#\(sport)")
+                            if let title = post.title, !title.isEmpty {
+                                Text("#\(title)")
                             }
                         }
                         .font(.caption)
@@ -90,8 +87,8 @@ struct FeedCell: View {
                     // Right Column: Action Buttons
                     VStack(spacing: 24) {
                         // Profile Pic Placeholder
-                        if let aid = authorId, !aid.isEmpty {
-                            NavigationLink(destination: AuthorProfileView(userID: aid)) {
+                        if let aid = authorId {
+                            NavigationLink(destination: AuthorProfileView(username: authorUsername)) {
                                 ZStack {
                                     Circle()
                                         .fill(Color.gray)
@@ -180,10 +177,12 @@ struct FeedCell: View {
             CommentSheetView(post: post, commentCount: $currentComments)
         }
         .onAppear {
-            currentLikes = post.likes ?? 0
-            checkIfLiked()
-            fetchAuthorId()
-            fetchCommentCount()
+            currentLikes = post.likeCount ?? 0
+            currentComments = post.commentCount ?? 0
+            isLiked = post.isLiked ?? false
+            authorUsername = post.username ?? "roar_creator"
+            authorId = post.userId
+            
             isPausedByUser = false // Auto resume when appearing if it was active
         }
         .onDisappear {
@@ -191,57 +190,16 @@ struct FeedCell: View {
         }
     }
     
-    private func fetchAuthorId() {
-        Task {
-            if let user = try? await post.author {
-                await MainActor.run { 
-                    self.authorId = user.id 
-                    self.authorUsername = user.username
-                }
-            }
-        }
-    }
-    
-    private func checkIfLiked() {
-        Task {
-            do {
-                let user = try await Amplify.Auth.getCurrentUser()
-                await MainActor.run { self.currentUserId = user.userId }
-                
-                // For MVP, we'll try to just query if there's a Like record where postId == post.id and userId == user.userId
-                // Since Amplify Data Gen 2 list filters can be tricky, we'll just check it locally if needed,
-                // or just rely on the toggle for now. (Assume false initially if not cached)
-            } catch {
-                print("Failed to get current user: \(error)")
-            }
-        }
-    }
-    
     private func toggleLike() {
-        // Optimistic UI update
         isLiked.toggle()
         currentLikes += isLiked ? 1 : -1
         
         Task {
-            guard let uid = currentUserId else { return }
             do {
                 if isLiked {
-                    // Create Like record
-                    let dummyUser = User(id: uid, username: "")
-                    let dummyPost = Post(id: post.id, description: "")
-                    let likeRecord = Like(user: dummyUser, post: dummyPost)
-                    try await Amplify.API.mutate(request: .create(likeRecord))
-                    
-                    // Increment Post likes count
-                    var updatedPost = post
-                    updatedPost.likes = currentLikes
-                    try await Amplify.API.mutate(request: .update(updatedPost))
+                    let _ = try await APIClient.shared.post(endpoint: "/videos/\(post.id)/likes", body: EmptyResponse(), responseType: EmptyResponse.self)
                 } else {
-                    // MVP un-like feature relies on finding the specific like record. 
-                    // To keep things swift, we just decrement the post count.
-                    var updatedPost = post
-                    updatedPost.likes = currentLikes
-                    try await Amplify.API.mutate(request: .update(updatedPost))
+                    let _ = try await APIClient.shared.delete(endpoint: "/videos/\(post.id)/likes", body: EmptyResponse(), responseType: EmptyResponse.self)
                 }
             } catch {
                 print("Like mutation failed: \(error)")
@@ -249,21 +207,6 @@ struct FeedCell: View {
                     isLiked.toggle()
                     currentLikes += isLiked ? 1 : -1
                 }
-            }
-        }
-    }
-    
-    private func fetchCommentCount() {
-        Task {
-            do {
-                let commentsPredicate = Comment.keys.post == post.id
-                let request = GraphQLRequest<Comment>.list(Comment.self, where: commentsPredicate)
-                let result = try await Amplify.API.query(request: request)
-                if case .success(let fetchedComments) = result {
-                    await MainActor.run { self.currentComments = fetchedComments.count }
-                }
-            } catch {
-                print("Failed to fetch comment count: \(error)")
             }
         }
     }

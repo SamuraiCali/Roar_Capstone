@@ -5,7 +5,7 @@ struct VerticalFeedView: View {
     let onRefresh: () async -> Void
     
     // Tracks the ID of the post currently fully visible on screen
-    @State var activePostID: String?
+    @State var activePostID: Int?
     
     var body: some View {
         GeometryReader { proxy in
@@ -40,7 +40,7 @@ struct VerticalFeedView: View {
 
 struct PostContainer: View {
     let post: Post
-    @Binding var activePostID: String?
+    @Binding var activePostID: Int?
     let containerSize: CGSize
     
     var body: some View {

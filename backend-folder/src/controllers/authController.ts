@@ -50,7 +50,7 @@ export const register = async (req: Request, res: Response) => {
             maxAge: 1000 * 60 * 60 * 24 * 7,
         })
             .status(201)
-            .json({ message: "User registered", user });
+            .json({ message: "User registered", user, token });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Server error" });
@@ -90,7 +90,7 @@ export const login = async (req: Request, res: Response) => {
             secure: false,
             sameSite: "lax",
             maxAge: 1000 * 60 * 60 * 24 * 7,
-        }).json({ message: "Login successful" });
+        }).json({ message: "Login successful", user, token });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Server error" });

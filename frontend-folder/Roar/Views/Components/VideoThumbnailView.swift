@@ -1,8 +1,8 @@
 import SwiftUI
-@preconcurrency import Amplify
 import AVFoundation
 
 struct VideoThumbnailView: View {
+    // This is now effectively the `url` from the backend, not the S3 Key anymore
     let videoKey: String?
     
     @State private var thumbnailImage: UIImage?
@@ -29,13 +29,11 @@ struct VideoThumbnailView: View {
     }
     
     private func loadThumbnail() {
-        guard let key = videoKey, !key.isEmpty, thumbnailImage == nil else { return }
+        guard let keyUrl = videoKey, !keyUrl.isEmpty, let url = URL(string: keyUrl), thumbnailImage == nil else { return }
         
         isLoading = true
         Task {
             do {
-                let url = try await Amplify.Storage.getURL(path: .fromString(key))
-                
                 let asset = AVAsset(url: url)
                 let generator = AVAssetImageGenerator(asset: asset)
                 generator.appliesPreferredTrackTransform = true
@@ -49,7 +47,7 @@ struct VideoThumbnailView: View {
                     self.isLoading = false
                 }
             } catch {
-                print("Failed to generate thumbnail for \(key): \(error)")
+                print("Failed to generate thumbnail for \(keyUrl): \(error)")
                 await MainActor.run {
                     self.isLoading = false
                 }

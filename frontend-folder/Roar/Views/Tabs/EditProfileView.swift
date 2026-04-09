@@ -1,47 +1,30 @@
 import SwiftUI
-@preconcurrency import Amplify
-@preconcurrency internal import AWSPluginsCore
 
 struct EditProfileView: View {
-    @Environment(\.presentationMode) var presentationMode
     @Binding var currentUser: User?
+    @Environment(\.presentationMode) var presentationMode
     
-    @State private var username: String = ""
-    @State private var bio: String = ""
-    @State private var isLoading = false
+    @State private var newUsername: String = ""
+    @State private var newBio: String = ""
+    @State private var isSaving = false
     @State private var errorMessage: String?
     
     var body: some View {
         NavigationView {
             Form {
                 Section(header: Text("Profile Information")) {
-                    TextField("Username", text: $username)
+                    TextField("Username", text: $newUsername)
                         .autocapitalization(.none)
-                        .disableAutocorrection(true)
                     
-                    TextEditor(text: $bio)
+                    Text("Bio")
+                    TextEditor(text: $newBio)
                         .frame(height: 100)
-                        .overlay(
-                            VStack {
-                                if bio.isEmpty {
-                                    HStack {
-                                        Text("Bio")
-                                            .foregroundColor(.gray)
-                                            .padding(.top, 8)
-                                            .padding(.leading, 4)
-                                        Spacer()
-                                    }
-                                }
-                                Spacer()
-                            }
-                        )
                 }
                 
-                if let errorMessage = errorMessage {
+                if let error = errorMessage {
                     Section {
-                        Text(errorMessage)
+                        Text(error)
                             .foregroundColor(.red)
-                            .font(.caption)
                     }
                 }
             }
@@ -50,53 +33,29 @@ struct EditProfileView: View {
                 leading: Button("Cancel") {
                     presentationMode.wrappedValue.dismiss()
                 },
-                trailing: Button(action: saveProfile) {
-                    if isLoading {
-                        ProgressView()
-                    } else {
-                        Text("Save").bold()
-                    }
+                trailing: Button("Save") {
+                    saveProfile()
                 }
-                .disabled(isLoading || username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(isSaving)
             )
             .onAppear {
                 if let user = currentUser {
-                    username = user.username
-                    bio = user.bio ?? ""
+                    newUsername = user.username
+                    newBio = ""
                 }
             }
         }
     }
     
     private func saveProfile() {
-        guard var userToUpdate = currentUser else { return }
-        
-        isLoading = true
+        isSaving = true
         errorMessage = nil
-        
-        userToUpdate.username = username
-        userToUpdate.bio = bio
-        
         Task {
             do {
-                let result = try await Amplify.API.mutate(request: .update(userToUpdate))
-                switch result {
-                case .success(let updatedUser):
-                    await MainActor.run {
-                        self.currentUser = updatedUser
-                        self.isLoading = false
-                        self.presentationMode.wrappedValue.dismiss()
-                    }
-                case .failure(let error):
-                    await MainActor.run {
-                        self.errorMessage = "Failed to update profile: \(error.localizedDescription)"
-                        self.isLoading = false
-                    }
-                }
-            } catch {
+                // Backend integration pending for `update_profile`
                 await MainActor.run {
-                    self.errorMessage = "Error updating profile: \(error.localizedDescription)"
-                    self.isLoading = false
+                    self.isSaving = false
+                    presentationMode.wrappedValue.dismiss()
                 }
             }
         }

@@ -1,21 +1,25 @@
 import SwiftUI
-@preconcurrency import Amplify
-@preconcurrency internal import AWSPluginsCore
 
-struct CommentUIModel: Identifiable {
-    let id: String
+struct GetCommentsResponse: Decodable {
+    let comments: [Comment]
+}
+
+struct PostCommentRequest: Encodable {
     let content: String
-    let username: String
+    let parent_comment_id: Int?
+}
+
+struct PostCommentResponse: Decodable {
+    let comment: Comment
 }
 
 struct CommentSheetView: View {
     let post: Post
     @Binding var commentCount: Int
     
-    @State private var comments: [CommentUIModel] = []
+    @State private var comments: [Comment] = []
     @State private var newCommentText: String = ""
     @State private var isLoading = true
-    @State private var currentUserId: String?
     
     var body: some View {
         NavigationView {
@@ -32,7 +36,7 @@ struct CommentSheetView: View {
                 } else {
                     List(comments) { comment in
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(comment.username)
+                            Text(comment.username ?? "Unknown User")
                                 .font(.caption)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.gray)
@@ -70,30 +74,13 @@ struct CommentSheetView: View {
     private func fetchComments() {
         Task {
             do {
-                let user = try await Amplify.Auth.getCurrentUser()
-                await MainActor.run { self.currentUserId = user.userId }
+                let response = try await APIClient.shared.get(endpoint: "/videos/\(post.id)/comments", responseType: GetCommentsResponse.self)
+                let fetchedComments = response.comments
                 
-                // Fetch comments for this post
-                let postPredicate = Comment.keys.post == post.id
-                let request = GraphQLRequest<Comment>.list(Comment.self, where: postPredicate)
-                let result = try await Amplify.API.query(request: request)
-                
-                switch result {
-                case .success(let fetchedComments):
-                    var mappedComments: [CommentUIModel] = []
-                    for comment in fetchedComments {
-                        let username = (try? await comment.user?.username) ?? "Unknown User"
-                        mappedComments.append(CommentUIModel(id: comment.id, content: comment.content, username: username))
-                    }
-                    let finalComments = mappedComments
-                    await MainActor.run {
-                        self.comments = finalComments
-                        self.commentCount = self.comments.count
-                        self.isLoading = false
-                    }
-                case .failure(let error):
-                    print("Failed to fetch comments: \(error)")
-                    await MainActor.run { self.isLoading = false }
+                await MainActor.run {
+                    self.comments = fetchedComments
+                    self.commentCount = self.comments.count
+                    self.isLoading = false
                 }
             } catch {
                 print("Error getting user or comments: \(error)")
@@ -103,30 +90,25 @@ struct CommentSheetView: View {
     }
     
     private func postComment() {
-        guard let uid = currentUserId, !newCommentText.isEmpty else { return }
-        
+        if newCommentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return }
         let contentToPost = newCommentText
-        let dummyUser = User(id: uid, username: "")
-        let dummyPost = Post(id: post.id, description: "")
-        let newComment = Comment(content: contentToPost, user: dummyUser, post: dummyPost)
-        
-        // Optimistic UI update
-        // We assume current user's username is what they set in their profile,
-        // but since we only have their ID here easily, we'll placeholder it as "Me" until refresh,
-        // or we could fetch the user model. For real-time feel, "Me" works or fetch it in `fetchComments`.
-        let optimisticUI = CommentUIModel(id: UUID().uuidString, content: contentToPost, username: "Me")
-        comments.append(optimisticUI)
         newCommentText = ""
-        commentCount += 1
         
         Task {
             do {
-                let result = try await Amplify.API.mutate(request: .create(newComment))
-                switch result {
-                case .success(_):
-                    print("Comment created successfully")
-                case .failure(let error):
-                    print("GraphQL error creating comment: \(error)")
+                let req = PostCommentRequest(content: contentToPost, parent_comment_id: nil)
+                let response = try await APIClient.shared.post(endpoint: "/videos/\(post.id)/comments", body: req, responseType: PostCommentResponse.self)
+                
+                var newComm = response.comment
+                // If backend does not immediately return username with the created comment for the optimistic model
+                // We'll update it with what we have in SessionManager
+                if newComm.username == nil, let currentUsr = SessionManager.shared.currentUser {
+                    newComm = Comment(id: newComm.id, userId: newComm.userId, videoId: newComm.videoId, content: newComm.content, parentCommentId: newComm.parentCommentId, createdAt: newComm.createdAt, username: currentUsr.username, replyCount: newComm.replyCount)
+                }
+                
+                await MainActor.run {
+                    self.comments.insert(newComm, at: 0)
+                    self.commentCount += 1
                 }
             } catch {
                 print("Error creating comment: \(error)")

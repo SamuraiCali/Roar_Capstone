@@ -1,7 +1,5 @@
 import SwiftUI
 import AVKit
-@preconcurrency import Amplify
-internal import AWSPluginsCore
 
 class LoopingPlayerUIView: UIView {
     private let playerLayer = AVPlayerLayer()
@@ -60,7 +58,8 @@ class LoopingPlayerUIView: UIView {
 }
 
 struct VideoPlayerView: UIViewRepresentable {
-    let videoKey: String?
+    // This is now the full pre-signed url returned by the backend
+    let videoKey: String? 
     @Binding var isPlaying: Bool
     
     func makeUIView(context: Context) -> LoopingPlayerUIView {
@@ -68,7 +67,7 @@ struct VideoPlayerView: UIViewRepresentable {
     }
     
     func updateUIView(_ uiView: LoopingPlayerUIView, context: Context) {
-        guard let key = videoKey, !key.isEmpty else {
+        guard let urlString = videoKey, !urlString.isEmpty, let url = URL(string: urlString) else {
             uiView.cleanup()
             return
         }
@@ -78,16 +77,7 @@ struct VideoPlayerView: UIViewRepresentable {
             if uiView.hasPlayer {
                 uiView.play()
             } else {
-                Task {
-                    do {
-                        let url = try await Amplify.Storage.getURL(path: .fromString(key))
-                        await MainActor.run {
-                            uiView.playVideo(url: url)
-                        }
-                    } catch {
-                        print("Failed to get presigned URL for video: \(error)")
-                    }
-                }
+                uiView.playVideo(url: url)
             }
         } else {
             uiView.pause()

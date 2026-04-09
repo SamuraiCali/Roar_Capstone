@@ -1,10 +1,7 @@
 import SwiftUI
-@preconcurrency import Amplify
-internal import AWSPluginsCore
 
 struct ProfileView: View {
     @State private var currentUser: User?
-    @State private var currentAuthUserId: String?
     @State private var userPosts: [Post] = []
     
     @State private var followersCount = 0
@@ -48,17 +45,9 @@ struct ProfileView: View {
                             .fontWeight(.bold)
                             .foregroundColor(.primary)
                         
-                        if let bio = currentUser?.bio, !bio.isEmpty {
-                            Text(bio)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal)
-                        } else {
-                            Text("Welcome to Roar! Update your bio soon.")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                        Text("Welcome to Roar! Update your bio soon.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                         
                         // Edit Profile Button (Placeholder MVP)
                         Button(action: {
@@ -91,7 +80,7 @@ struct ProfileView: View {
                                     .foregroundColor(.gray)
                             }
                             VStack {
-                                Text("\(userPosts.count)")
+                                Text("-") // Pending integration
                                     .font(.headline)
                                 Text("Posts")
                                     .font(.caption)
@@ -102,27 +91,9 @@ struct ProfileView: View {
                         
                         Divider()
                         
-                        // User's Posts Grid
-                        if userPosts.isEmpty {
-                            Text("You haven't posted any videos yet.")
-                                .foregroundColor(.gray)
-                                .padding(.top, 40)
-                        } else {
-                            LazyVGrid(columns: columns, spacing: 2) {
-                                ForEach(userPosts, id: \.id) { post in
-                                    NavigationLink(destination: ExploreFeedWrapper(posts: userPosts, initialPostID: post.id)) {
-                                        ExploreGridCell(post: post)
-                                    }
-                                    .contextMenu {
-                                        Button(role: .destructive) {
-                                            deletePost(postID: post.id)
-                                        } label: {
-                                            Label("Delete Post", systemImage: "trash")
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        Text("Posts Grid Integration Pending")
+                            .foregroundColor(.gray)
+                            .padding(.top, 40)
                     }
                 }
             }
@@ -146,41 +117,14 @@ struct ProfileView: View {
         Task {
             isLoading = true
             do {
-                let authUser = try await Amplify.Auth.getCurrentUser()
-                let uid = authUser.userId
-                await MainActor.run { self.currentAuthUserId = uid }
-                
-                // Fetch User Model
-                let userRequest = GraphQLRequest<User>.get(User.self, byId: uid)
-                let userResult = try await Amplify.API.query(request: userRequest)
-                if case .success(let fetchedUser) = userResult {
-                    await MainActor.run { self.currentUser = fetchedUser }
+                if let me = SessionManager.shared.currentUser {
+                    await MainActor.run { self.currentUser = me }
+                    let followersResp = try await APIClient.shared.get(endpoint: "/users/\(me.username)/followers/count", responseType: FollowCountResponse.self)
+                    
+                    await MainActor.run {
+                        self.followersCount = followersResp.count
+                    }
                 }
-                
-                // Fetch Posts
-                let postPredicate = Post.keys.author == uid
-                let postRequest = GraphQLRequest<Post>.list(Post.self, where: postPredicate)
-                let postResult = try await Amplify.API.query(request: postRequest)
-                if case .success(let fetchedPosts) = postResult {
-                    await MainActor.run { self.userPosts = Array(fetchedPosts) }
-                }
-                
-                // Fetch Followers
-                let followersPredicate = Follow.keys.following == uid
-                let followersRequest = GraphQLRequest<Follow>.list(Follow.self, where: followersPredicate)
-                let followersResult = try await Amplify.API.query(request: followersRequest)
-                if case .success(let fetchedFollowers) = followersResult {
-                    await MainActor.run { self.followersCount = fetchedFollowers.count }
-                }
-                
-                // Fetch Following
-                let followingPredicate = Follow.keys.follower == uid
-                let followingRequest = GraphQLRequest<Follow>.list(Follow.self, where: followingPredicate)
-                let followingResult = try await Amplify.API.query(request: followingRequest)
-                if case .success(let fetchedFollowing) = followingResult {
-                    await MainActor.run { self.followingCount = fetchedFollowing.count }
-                }
-                
             } catch {
                 print("Failed to fetch profile: \(error)")
             }
@@ -189,28 +133,7 @@ struct ProfileView: View {
     }
     
     private func signOut() {
-        Task {
-            do {
-                _ = try await Amplify.Auth.signOut()
-            } catch {
-                print("Failed to sign out: \(error)")
-            }
-        }
-    }
-    
-    private func deletePost(postID: String) {
-        Task {
-            do {
-                let postToDelete = Post(id: postID, description: "") // Minimum required to delete
-                try await Amplify.API.mutate(request: .delete(postToDelete))
-                
-                // Optimistic UI update
-                await MainActor.run {
-                    self.userPosts.removeAll { $0.id == postID }
-                }
-            } catch {
-                print("Failed to delete post: \(error)")
-            }
-        }
+        SessionManager.shared.clearSession()
+        // Ensure App resets to AuthView by clearing userDefaults and dismissing
     }
 }

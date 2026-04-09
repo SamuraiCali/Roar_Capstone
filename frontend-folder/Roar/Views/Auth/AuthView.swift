@@ -1,22 +1,35 @@
 import SwiftUI
-import Amplify
+
+struct AuthResponse: Codable {
+    let message: String
+    let user: User
+    let token: String
+}
+
+struct RegisterRequest: Encodable {
+    let username: String
+    let email: String
+    let password: String
+}
+
+struct LoginRequest: Encodable {
+    let email: String
+    let password: String
+}
 
 struct AuthView: View {
     @Binding var isSignedIn: Bool
     @State private var isSignUp = false
     @State private var email = ""
+    @State private var username = ""
     @State private var password = ""
     @State private var errorMessage = ""
     @State private var isLoading = false
     
-    // For Sign Up Verification
-    @State private var isVerifying = false
-    @State private var confirmationCode = ""
-    
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
-                Text(isVerifying ? "Verify Email" : (isSignUp ? "Create Account" : "Welcome Back"))
+                Text(isSignUp ? "Create Account" : "Welcome Back")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundColor(.roarBlue)
@@ -27,56 +40,42 @@ struct AuthView: View {
                         .font(.caption)
                 }
                 
-                if isVerifying {
-                    TextField("Confirmation Code", text: $confirmationCode)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .keyboardType(.numberPad)
-                        .padding(.horizontal)
-                    
-                    Button(action: verifyEmail) {
-                        if isLoading {
-                            ProgressView()
-                        } else {
-                            Text("Verify")
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color.roarGold)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                        }
-                    }
+                TextField("Email", text: $email)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .textContentType(.emailAddress)
+                    .autocapitalization(.none)
                     .padding(.horizontal)
-                    
-                } else {
-                    TextField("Email", text: $email)
+                
+                if isSignUp {
+                    TextField("Username", text: $username)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .textContentType(.emailAddress)
+                        .textContentType(.username)
                         .autocapitalization(.none)
                         .padding(.horizontal)
-                    
-                    SecureField("Password", text: $password)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .textContentType(isSignUp ? .newPassword : .password)
-                        .padding(.horizontal)
-                    
-                    Button(action: isSignUp ? signUp : signIn) {
-                        if isLoading {
-                            ProgressView()
-                        } else {
-                            Text(isSignUp ? "Sign Up" : "Sign In")
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color.roarBlue)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                        }
-                    }
+                }
+                
+                SecureField("Password", text: $password)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .textContentType(isSignUp ? .newPassword : .password)
                     .padding(.horizontal)
-                    
-                    Button(action: { isSignUp.toggle() }) {
-                        Text(isSignUp ? "Already have an account? Sign In" : "Don't have an account? Sign Up")
-                            .foregroundColor(.secondary)
+                
+                Button(action: isSignUp ? signUp : signIn) {
+                    if isLoading {
+                        ProgressView()
+                    } else {
+                        Text(isSignUp ? "Sign Up" : "Sign In")
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.roarBlue)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
                     }
+                }
+                .padding(.horizontal)
+                
+                Button(action: { isSignUp.toggle() }) {
+                    Text(isSignUp ? "Already have an account? Sign In" : "Don't have an account? Sign Up")
+                        .foregroundColor(.secondary)
                 }
                 
                 Spacer()
@@ -92,60 +91,17 @@ struct AuthView: View {
         errorMessage = ""
         Task {
             do {
-                let userAttributes = [AuthUserAttribute(.email, value: email)]
-                let result = try await Amplify.Auth.signUp(
-                    username: email,
-                    password: password,
-                    options: .init(userAttributes: userAttributes)
-                )
+                let req = RegisterRequest(username: username, email: email, password: password)
+                let response = try await APIClient.shared.post(endpoint: "/auth/register", body: req, responseType: AuthResponse.self)
                 await MainActor.run {
+                    SessionManager.shared.saveSession(token: response.token, user: response.user)
                     isLoading = false
-                    if !result.isSignUpComplete {
-                        isVerifying = true
-                        errorMessage = "Please check your email for a code."
-                    } else {
-                        // Should not happen with default config usually, but handle it
-                        signIn()
-                    }
-                }
-            } catch let error as AuthError {
-                await MainActor.run {
-                    isLoading = false
-                    errorMessage = error.errorDescription
-                    print("SignUp AuthError: \(error.errorDescription)\nRecovery: \(error.recoverySuggestion)")
+                    isSignedIn = true
                 }
             } catch {
                 await MainActor.run {
                     isLoading = false
-                    errorMessage = error.localizedDescription
-                }
-            }
-        }
-    }
-    
-    func verifyEmail() {
-        isLoading = true
-        errorMessage = ""
-        Task {
-            do {
-                let result = try await Amplify.Auth.confirmSignUp(for: email, confirmationCode: confirmationCode)
-                if result.isSignUpComplete {
-                   await MainActor.run {
-                       isLoading = false
-                       isVerifying = false
-                       signIn()
-                   }
-                }
-            } catch let error as AuthError {
-                await MainActor.run {
-                    isLoading = false
-                    errorMessage = error.errorDescription
-                    print("VerifyEmail AuthError: \(error.errorDescription)\nRecovery: \(error.recoverySuggestion)")
-                }
-            } catch {
-                await MainActor.run {
-                    isLoading = false
-                    errorMessage = error.localizedDescription
+                    errorMessage = "Error: \(error.localizedDescription)"
                 }
             }
         }
@@ -156,23 +112,17 @@ struct AuthView: View {
         errorMessage = ""
         Task {
             do {
-                let result = try await Amplify.Auth.signIn(username: email, password: password)
+                let req = LoginRequest(email: email, password: password)
+                let response = try await APIClient.shared.post(endpoint: "/auth/login", body: req, responseType: AuthResponse.self)
                 await MainActor.run {
+                    SessionManager.shared.saveSession(token: response.token, user: response.user)
                     isLoading = false
-                    if result.isSignedIn {
-                        isSignedIn = true
-                    }
-                }
-            } catch let error as AuthError {
-                await MainActor.run {
-                    isLoading = false
-                    errorMessage = error.errorDescription
-                    print("SignIn AuthError: \(error.errorDescription)\nRecovery: \(error.recoverySuggestion)")
+                    isSignedIn = true
                 }
             } catch {
                 await MainActor.run {
                     isLoading = false
-                    errorMessage = error.localizedDescription
+                    errorMessage = "Error: \(error.localizedDescription)"
                 }
             }
         }

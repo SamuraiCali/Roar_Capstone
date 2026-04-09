@@ -1,5 +1,4 @@
 import SwiftUI
-import Amplify
 
 struct ContentView: View {
     @State private var isSignedIn = false
@@ -21,24 +20,13 @@ struct ContentView: View {
     }
     
     func checkSession() {
-        Task {
-            do {
-                let session = try await Amplify.Auth.fetchAuthSession()
-                DispatchQueue.main.async {
-                    self.isSignedIn = session.isSignedIn
-                    self.isCheckingSession = false
-                }
-                
-                if session.isSignedIn {
-                    await MockDataGenerator.generateMockUsersAndRelationships()
-                }
-            } catch {
-                print("Error checking session: \(error)")
-                DispatchQueue.main.async {
-                    self.isSignedIn = false
-                    self.isCheckingSession = false
-                }
-            }
+        // If there's a token, consider them signed in for now
+        // A more robust checking mechanism would ping `/api/protected`
+        if UserDefaults.standard.string(forKey: "auth_token") != nil {
+            isSignedIn = true
+        } else {
+            isSignedIn = false
         }
+        isCheckingSession = false
     }
 }
