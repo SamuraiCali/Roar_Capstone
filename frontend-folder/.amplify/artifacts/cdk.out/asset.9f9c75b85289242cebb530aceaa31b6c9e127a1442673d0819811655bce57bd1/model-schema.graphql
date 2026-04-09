@@ -1,0 +1,10 @@
+type Post @model @auth(rules: [{allow: public, provider: apiKey, operations: [read]},
+  {allow: owner, ownerField: "owner"}])
+{
+  videoURL: String
+  teamTag: String
+  sportTag: String
+  timestamp: AWSDateTime
+  description: String!
+  likes: Int @default(value: "0")
+}
