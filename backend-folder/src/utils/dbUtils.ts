@@ -130,8 +130,8 @@ export const dbGetFeedVideos = async (feedData: {
     v.*,
     u.username,
 
-    COALESCE(lc.like_count, 0) AS like_count,
-    COALESCE(cc.comment_count, 0) AS comment_count,
+    COALESCE(lc.like_count, 0)::INT AS like_count,
+    COALESCE(cc.comment_count, 0)::INT AS comment_count,
 
     COALESCE(ts.tag_score, 0) * 10 AS tag_component,
     COALESCE(lc.like_count, 0) * 2 AS like_component,
