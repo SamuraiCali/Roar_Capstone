@@ -15,15 +15,17 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            checkSession()
+            Task {
+                await checkSession()
+            }
         }
     }
     
-    func checkSession() {
-        // If there's a token, consider them signed in for now
+    func checkSession() async {
         // A more robust checking mechanism would ping `/api/protected`
         if UserDefaults.standard.string(forKey: "auth_token") != nil {
-            isSignedIn = true
+            await SessionManager.shared.loadCurrentUser()
+            isSignedIn = SessionManager.shared.currentUser != nil
         } else {
             isSignedIn = false
         }
