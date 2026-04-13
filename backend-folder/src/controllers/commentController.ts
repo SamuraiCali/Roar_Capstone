@@ -64,6 +64,9 @@ export const getCommentsHandler = async (req: Request, res: Response) => {
       return;
     }
 
+    console.log("Attempting to get comments for video id ", videoId)
+
+
     const comments = await dbGetCommentsWithReplyCount(Number(videoId));
     res.status(200).json({ comments: comments });
   } catch (err) {

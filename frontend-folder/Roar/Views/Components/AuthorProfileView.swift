@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct FollowCountResponse: Decodable {
-    let count: Int
+    let follower_count: Int
 }
 
 struct AuthorProfileView: View {
@@ -10,8 +10,15 @@ struct AuthorProfileView: View {
     
     @State private var followersCount = 0
     @State private var followingCount = 0
+    @State private var posts: [Post] = []
     
     @State private var isLoading = true
+    
+    let columns = [
+        GridItem(.flexible(), spacing: 2),
+        GridItem(.flexible(), spacing: 2),
+        GridItem(.flexible(), spacing: 2)
+    ]
     
     var body: some View {
         ScrollView {
@@ -63,9 +70,26 @@ struct AuthorProfileView: View {
                     
                     Divider().background(Color.gray)
                     
-                    Text("Posts Grid Integration Pending")
-                        .foregroundColor(.gray)
-                        .padding(.top, 40)
+                    ScrollView {
+                        if isLoading {
+                            ProgressView()
+                                .padding(.top, 50)
+                        } else {
+                            if posts.isEmpty {
+                                Text("User has no posts.")
+                                    .foregroundColor(.gray)
+                                    .padding(.top, 50)
+                            } else {
+                                LazyVGrid(columns: columns, spacing: 2) {
+                                    ForEach(posts) { post in
+                                        NavigationLink(destination: ExploreFeedWrapper(posts: posts, initialPostID: post.id)) {
+                                            ExploreGridCell(post: post)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -81,10 +105,15 @@ struct AuthorProfileView: View {
         Task {
             isLoading = true
             do {
-                let followersResp = try await APIClient.shared.get(endpoint: "/users/\(username)/followers/count", responseType: FollowCountResponse.self)
+                
+                let profileData = try await APIClient.shared.get(endpoint: "/profile/\(username)", responseType: UserProfile.self)
+                let posts = await APIClient.shared.fetchVideosDetails(videos: profileData.videos)
                 
                 await MainActor.run {
-                    self.followersCount = followersResp.count
+                    self.followersCount = profileData.follower_count
+                    self.followingCount = profileData.following_count
+                    self.posts = posts
+                    
                     self.isLoading = false
                 }
             } catch {

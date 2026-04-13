@@ -1,5 +1,21 @@
 import SwiftUI
 
+struct UserProfile: Codable {
+    let id: Int
+    let username: String
+    let follower_count: Int
+    let following_count: Int
+    let videos: [Video]
+}
+
+struct Video: Codable {
+    let video_id: Int
+    let title: String
+    let key: String
+    let description: String
+    let created_at: String
+}
+
 struct ProfileView: View {
     @State private var currentUser: User?
     @State private var userPosts: [Post] = []
@@ -91,9 +107,29 @@ struct ProfileView: View {
                         
                         Divider()
                         
-                        Text("Posts Grid Integration Pending")
-                            .foregroundColor(.gray)
-                            .padding(.top, 40)
+//                        Text("Posts Grid Integration Pending")
+//                            .foregroundColor(.gray)
+//                            .padding(.top, 40)
+                        ScrollView {
+                            if isLoading {
+                                ProgressView()
+                                    .padding(.top, 50)
+                            } else {
+                                if userPosts.isEmpty {
+                                    Text("User has no posts.")
+                                        .foregroundColor(.gray)
+                                        .padding(.top, 50)
+                                } else {
+                                    LazyVGrid(columns: columns, spacing: 2) {
+                                        ForEach(userPosts) { post in
+                                            NavigationLink(destination: ExploreFeedWrapper(posts: userPosts, initialPostID: post.id)) {
+                                                ExploreGridCell(post: post)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -119,10 +155,14 @@ struct ProfileView: View {
             do {
                 if let me = SessionManager.shared.currentUser {
                     await MainActor.run { self.currentUser = me }
-                    let followersResp = try await APIClient.shared.get(endpoint: "/users/\(me.username)/followers/count", responseType: FollowCountResponse.self)
+                    let profileData = try await APIClient.shared.get(endpoint: "/profile/\(me.username)", responseType: UserProfile.self)
+                    let posts = await APIClient.shared.fetchVideosDetails(videos: profileData.videos)
+                    
                     
                     await MainActor.run {
-                        self.followersCount = followersResp.count
+                        self.followersCount = profileData.follower_count
+                        self.followingCount = profileData.following_count
+                        self.userPosts = posts
                     }
                 }
             } catch {
@@ -136,4 +176,34 @@ struct ProfileView: View {
         SessionManager.shared.clearSession()
         // Ensure App resets to AuthView by clearing userDefaults and dismissing
     }
+    
+//    func fetchVideosDetails(videos: [Video]) async -> [Post] {
+//        await withTaskGroup(of: Post?.self) { group in
+//            
+//            for video in videos {
+//                group.addTask {
+//                    do {
+//                        return try await APIClient.shared.get(
+//                            endpoint: "/videos/\(video.video_id)",
+//                            responseType: Post.self
+//                        )
+//                    } catch {
+//                        // log error if needed
+//                        print("Failed to fetch video \(video.video_id): \(error)")
+//                        return nil
+//                    }
+//                }
+//            }
+//            
+//            var results: [Post] = []
+//            
+//            for await post in group {
+//                if let post = post {
+//                    results.append(post)
+//                }
+//            }
+//            
+//            return results
+//        }
+//    }
 }

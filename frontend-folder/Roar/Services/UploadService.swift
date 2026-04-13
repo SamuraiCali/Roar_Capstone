@@ -1,4 +1,5 @@
 import Foundation
+internal import Combine
 
 struct PresignedURLResponse: Decodable {
     let uploadUrl: String

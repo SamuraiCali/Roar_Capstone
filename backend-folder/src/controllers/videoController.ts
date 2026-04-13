@@ -121,7 +121,9 @@ export const getVideoHandler = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ error: "Video Doesn't Exist" });
 
         const downloadUrl = await getPresignedDownloadUrl(video.key);
-        res.status(200).json({ video: { url: downloadUrl, ...video } });
+                res.status(200).json({ url: downloadUrl, ...video } );
+
+        // res.status(200).json({ video: { url: downloadUrl, ...video } });
     } catch (err) {
         console.log(err);
         res.status(500).json({ error: "Internal Server Error" });

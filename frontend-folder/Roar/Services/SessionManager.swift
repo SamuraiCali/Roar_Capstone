@@ -1,5 +1,5 @@
 import Foundation
-//internal import Combine
+internal import Combine
 
 struct ProtectedResponse: Decodable {
     let message: String
