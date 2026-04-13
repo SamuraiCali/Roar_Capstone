@@ -192,7 +192,7 @@ export const dbGetVideoById = async (id: number) => {
 export const dbGetCommentsWithReplyCount = async (videoId: number) => {
     const query = `SELECT c.*,
   u.username,
-  COUNT(r.id) AS reply_count
+  COUNT(r.id)::INT AS reply_count
   FROM comments c
   LEFT JOIN comments r 
     ON r.parent_comment_id = c.id
