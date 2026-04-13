@@ -181,8 +181,8 @@ export const dbGetVideoById = async (id: number) => {
     const query = `
     SELECT 
         v.*,
-        (SELECT COUNT(*) FROM likes l WHERE l.video_id = v.id) AS like_count,
-        (SELECT COUNT(*) FROM comments c WHERE c.video_id = v.id) AS comment_count
+        (SELECT COUNT(*) FROM likes l WHERE l.video_id = v.id)::INT AS like_count,
+        (SELECT COUNT(*) FROM comments c WHERE c.video_id = v.id)::INT AS comment_count
     FROM videos v
     WHERE v.id = $1;`;
     const result: QueryResult<DB_VIDEO> = await pool.query(query, [id]);
@@ -301,3 +301,45 @@ export const dbGetUserByUsername = async (username: string) => {
     );
     return result;
 };
+
+export const dbGetProfileDataFromUsername = async (username: string) => {
+    const query = `
+    SELECT 
+  u.id,
+  u.username,
+
+  (SELECT COUNT(*) 
+   FROM followers 
+   WHERE following_id = u.id)::INT AS follower_count,
+
+  (SELECT COUNT(*) 
+   FROM followers 
+   WHERE follower_id = u.id)::INT AS following_count,
+
+  COALESCE(
+    JSON_AGG(
+      JSON_BUILD_OBJECT(
+        'video_id', v.id,
+        'title', v.title,
+        'key', v.key,
+        'description', v.description,
+        'created_at', v.created_at
+      )
+    ) FILTER (WHERE v.id IS NOT NULL),
+    '[]'
+  ) AS videos
+
+FROM users u
+LEFT JOIN videos v 
+  ON v.user_id = u.id
+
+WHERE u.username = $1
+
+GROUP BY u.id, u.username;`
+
+    const result = await pool.query(query, [username])
+    if(result.rowCount) {
+        console.log(result.rows[0])
+    }
+    return result.rowCount ? result.rows[0] : null
+}

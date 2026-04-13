@@ -11,6 +11,8 @@ import likeRoutes from "./routes/likeRoutes";
 import adminRoutes from "./routes/adminRoutes";
 import commentRoutes from "./routes/commentRoutes";
 import followerRoutes from "./routes/followerRoutes";
+import profileRoutes from "./routes/profileRoutes"
+
 import { testDatabaseConnection } from "./config/db";
 import { auth, AuthRequest } from "./routes/authMiddleware";
 
@@ -35,6 +37,8 @@ app.use("/api/videos", auth, videoRoutes);
 app.use("/api/videos", auth, likeRoutes);
 app.use("/api/videos", auth, commentRoutes);
 app.use("/api/users", auth, followerRoutes);
+app.use("/api/profile", auth, profileRoutes);
+
 app.use("/api/auth", authRoutes);
 
 app.use("/api/admin", adminRoutes);
