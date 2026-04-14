@@ -43,23 +43,26 @@ struct AuthorProfileView: View {
                         .fontWeight(.bold)
                         .foregroundColor(.white)
                     
-                    Button(action: {
-                        Task {
-                            if isFollowing {
-                                unfollowUser()
-                            } else {
-                                followUser()
+                    if let currentUser = SessionManager.shared.currentUser, currentUser.username != username {
+                        Button(action: {
+                            Task {
+                                if isFollowing {
+                                    unfollowUser()
+                                } else {
+                                    followUser()
+                                }
                             }
+                        }) {
+                            Text(isFollowing ? "Following" : "Follow")
+                                .font(.headline)
+                                .foregroundColor(isFollowing ? .black : .white)
+                                .padding(.horizontal, 24)
+                                .padding(.vertical, 10)
+                                .background(isFollowing ? Color.roarGold : Color.roarBlue)
+                                .cornerRadius(10)
                         }
-                    }) {
-                        Text(isFollowing ? "Following" : "Follow")
-                            .font(.headline)
-                            .foregroundColor(isFollowing ? .black : .white)
-                            .padding(.horizontal, 24)
-                            .padding(.vertical, 10)
-                            .background(isFollowing ? Color.roarGold : Color.roarBlue)
-                            .cornerRadius(10)
                     }
+         
                     
                     // Stats
                     HStack(spacing: 40) {
@@ -80,7 +83,7 @@ struct AuthorProfileView: View {
                                 .foregroundColor(.gray)
                         }
                         VStack {
-                            Text("-") // Backend user posts route pending
+                            Text("\(posts.count)") // Backend user posts route pending
                                 .font(.headline)
                                 .foregroundColor(.white)
                             Text("Posts")

@@ -97,7 +97,7 @@ struct ProfileView: View {
                                     .foregroundColor(.gray)
                             }
                             VStack {
-                                Text("-") // Pending integration
+                                Text("\(userPosts.count)") // Pending integration
                                     .font(.headline)
                                 Text("Posts")
                                     .font(.caption)
