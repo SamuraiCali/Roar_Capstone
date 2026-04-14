@@ -6,7 +6,7 @@ public struct Comment: Codable, Identifiable, Equatable, Hashable {
     public let videoId: Int
     public let content: String
     public let parentCommentId: Int?
-    public let createdAt: String?
+    public let createdAt: String
     
     // Additional properties we'll ensure the backend provides/maps
     public let username: String?

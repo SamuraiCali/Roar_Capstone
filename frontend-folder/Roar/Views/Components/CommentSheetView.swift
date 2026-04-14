@@ -20,6 +20,23 @@ struct CommentSheetView: View {
     @State private var comments: [Comment] = []
     @State private var newCommentText: String = ""
     @State private var isLoading = true
+    @State private var expandedComments: Set<Int> = []
+    
+    private var topLevelComments: [Comment] {
+        comments.filter { $0.parentCommentId == nil }
+    }
+
+    private var replyCounts: [Int: Int] {
+        var counts: [Int: Int] = [:]
+        
+        for comment in comments {
+            if let parentId = comment.parentCommentId {
+                counts[parentId, default: 0] += 1
+            }
+        }
+        
+        return counts
+    }
     
     var body: some View {
         NavigationView {
@@ -34,15 +51,61 @@ struct CommentSheetView: View {
                         .foregroundColor(.secondary)
                     Spacer()
                 } else {
-                    List(comments) { comment in
+                    List(topLevelComments) { comment in
                         VStack(alignment: .leading, spacing: 4) {
                             Text(comment.username ?? "Unknown User")
-                                .font(.caption)
+                                .font(.body)
+
                                 .fontWeight(.semibold)
                                 .foregroundColor(.gray)
                             
                             Text(comment.content)
                                 .font(.body)
+                            
+                            HStack {
+                                Button(action: {}) {
+                                    Text("Reply")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                        
+                                Spacer()
+                            }
+                            .padding(.top, 2)
+                            
+                            if let count = comment.replyCount, count > 0 {
+                                Button(action: {
+                                    toggleReplies(for: comment.id)
+                                    print("Toggling replies for \(comment.id)")
+                                    print("Expanded Comments: \(expandedComments)")
+                                }) {
+                                    Text(expandedComments.contains(comment.id)
+                                         ? "Hide replies"
+                                         : "--- View \(count) replies")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                .buttonStyle(.plain)
+
+                            }
+                            
+                            if expandedComments.contains(comment.id) {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    ForEach(replies(for: comment.id)) { reply in
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            
+                                            Text(reply.username ?? "Unknown User")
+                                                .font(.body)
+                                                .foregroundColor(.gray)
+                                            
+                                            Text(reply.content)
+                                                .font(.body)
+                                                .padding(.leading, 12)
+                                        }
+                                    }
+                                }
+                                .padding(.top, 6)
+                            }
                         }
                         .padding(.vertical, 4)
                     }
@@ -71,11 +134,31 @@ struct CommentSheetView: View {
         }
     }
     
+    private func replies(for commentId: Int) -> [Comment] {
+        comments
+            .filter { $0.parentCommentId == commentId }
+            .sorted { $0.createdAt < $1.createdAt }
+    }
+    
+    private func toggleReplies(for commentId: Int) {
+        if expandedComments.contains(commentId) {
+            expandedComments.remove(commentId)
+        } else {
+            expandedComments.insert(commentId)
+        }
+    }
+    
     private func fetchComments() {
         Task {
             do {
                 let response = try await APIClient.shared.get(endpoint: "/videos/\(post.id)/comments", responseType: GetCommentsResponse.self)
                 let fetchedComments = response.comments
+                
+                for comment in fetchedComments {
+                    if let pid = comment.parentCommentId {
+                        print("Comment ID \(comment.id) is reply to comment \(pid)")
+                    }
+                }
                 
                 await MainActor.run {
                     self.comments = fetchedComments

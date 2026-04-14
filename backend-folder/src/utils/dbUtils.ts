@@ -190,18 +190,24 @@ export const dbGetVideoById = async (id: number) => {
 };
 
 export const dbGetCommentsWithReplyCount = async (videoId: number) => {
-    const query = `SELECT c.*,
+const query = `
+SELECT 
+  c.*,
   u.username,
-  COUNT(r.id)::INT AS reply_count
-  FROM comments c
-  LEFT JOIN comments r 
-    ON r.parent_comment_id = c.id
-  LEFT JOIN users u
-    ON u.id = c.user_id
-  WHERE c.video_id = $1
-    AND c.parent_comment_id IS NULL
-  GROUP BY c.id, u.username
-  ORDER BY c.created_at DESC;`;
+  COALESCE(rc.reply_count, 0)::INT AS reply_count
+FROM comments c
+LEFT JOIN users u
+  ON u.id = c.user_id
+LEFT JOIN (
+  SELECT parent_comment_id, COUNT(*) AS reply_count
+  FROM comments
+  WHERE parent_comment_id IS NOT NULL
+  GROUP BY parent_comment_id
+) rc
+  ON rc.parent_comment_id = c.id
+WHERE c.video_id = $1
+ORDER BY c.created_at DESC;
+`
 
     const result = await pool.query(
         query,
