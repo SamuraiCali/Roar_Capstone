@@ -93,22 +93,10 @@ struct CommentSheetView: View {
                                         
                                 Spacer()
                                 
-                                Button {
+                                LikeButtonView(isLikedLocal: likedComments.contains(comment.id), isLikedServer: comment.isLiked, likeCount: comment.likeCount) {
                                     toggleLike(for: comment.id)
-                                } label: {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: likedComments.contains(comment.id) ? "heart.fill" : "heart")
-                                            .foregroundColor(likedComments.contains(comment.id) ? .red : .gray)
-                                        
-                                        //this is awful please fix this later
-                                        if comment.likeCount != nil || likedComments.contains(comment.id) {
-                                            Text("\(((comment.likeCount! != 0) ? (comment.isLiked! ? -1 + comment.likeCount! : 0 + comment.likeCount!) : 0) + (likedComments.contains(comment.id) ? 1 : 0))")
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                        }
-                                    }
                                 }
-                                .buttonStyle(.plain)
+
                             }
                             .padding(.top, 2)
                             
@@ -116,11 +104,17 @@ struct CommentSheetView: View {
                                 Button(action: {
                                     toggleReplies(for: comment.id)
                                 }) {
-                                    Text(expandedComments.contains(comment.id)
-                                         ? "Hide replies"
-                                         : "--- View \(count) replies")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
+                                    HStack(spacing: 4) {
+                                        Text(expandedComments.contains(comment.id)
+                                             ? "Hide replies"
+                                             : "View \(count) replies")
+                                        
+                                        Image(systemName: expandedComments.contains(comment.id)
+                                              ? "chevron.up"
+                                              : "chevron.down")
+                                    }
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
                                 }
                                 .buttonStyle(.plain)
 
@@ -134,10 +128,21 @@ struct CommentSheetView: View {
                                             Text(reply.username ?? "Unknown User")
                                                 .font(.body)
                                                 .foregroundColor(.gray)
-                                            
-                                            Text(reply.content)
-                                                .font(.body)
                                                 .padding(.leading, 12)
+
+                                            HStack {
+
+                                                Text(reply.content)
+                                                    .font(.body)
+                                                    .padding(.leading, 12)
+                                                
+                                                    Spacer()
+                            
+                                                    LikeButtonView(isLikedLocal: likedComments.contains(reply.id), isLikedServer: reply.isLiked, likeCount: reply.likeCount) {
+                                                        toggleLike(for: reply.id)
+                                                    }
+                                                
+                                            }
                                         }
                                     }
                                 }
@@ -187,11 +192,7 @@ struct CommentSheetView: View {
     private func likeComment(commentId: Int) async {
         do {
             let _ = try await APIClient.shared.post(endpoint: "/videos/comment/\(commentId)/like", body: EmptyRequest(), responseType: EmptyResponse.self)
-            print("\(likedComments)")
             likedComments.insert(commentId)
-            print("\(likedComments)")
-
-            
         } catch {
             likedComments.remove(commentId)
             print("Error liking comment \(commentId)")
@@ -202,12 +203,7 @@ struct CommentSheetView: View {
     private func unlikeComment(commentId: Int) async {
         do {
             let _ = try await APIClient.shared.delete(endpoint: "/videos/comment/\(commentId)/like", body: EmptyRequest(), responseType: EmptyResponse.self)
-            print("\(likedComments)")
             likedComments.remove(commentId)
-            print("\(likedComments)")
-
-
-            
         } catch {
             likedComments.insert(commentId)
             print("Error unliking comment \(commentId)")
