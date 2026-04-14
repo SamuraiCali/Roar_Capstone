@@ -10,11 +10,8 @@ INSERT INTO users (username, email, password)
 VALUES
 ('basketballenjoyer', 'basketball@fiu.edu', 'bbb83ee7162556ae010069ad0143560c:e9ad462accac9c16a1e906f30c19e6ab5f1ca0ebf2d017fbf6887e3c3a14d1af15e50067eaa17ac6970e32cf875e48513fa02004a6d0532a76cd309ca4714a30'),
 ('jordan', 'jordan@fiu.edu', 'hashedpassword1'),
-('chains', 'chains@fiu.edu', 'hashedpassword3'),
 ('lebon', 'lebon@fiu.edu', 'hashedpassword2'),
-('sokol', 'sokol@fiu.edu', 'hashedpassword2'),
 ('houston', 'houston@fiu.edu', 'hashedpassword2'),
-('wolf', 'wolf@fiu.edu', 'hashedpassword2'),
 ('jimmy', 'jimmy@fiu.edu', 'hashedpassword2'),
 ('rust', 'rust@fiu.edu', 'hashedpassword2'),
 ('sydney', 'sydney@fiu.edu', 'hashedpassword2'),
@@ -41,9 +38,8 @@ CREATE TABLE videos (
 INSERT INTO videos (user_id, key, title, description) VALUES 
 (1, 'videos/1774055669348-file_example_MP4_480_1_5MG.mp4', 'My Example Video', 'Mediatok Larp Tutorial'),
 (2, 'videos/1774159425783-basketball_dunk.mp4', 'Dunked on', 'Anybody can get it 🤦🏾‍♂️ W camera woman'),
-(2, 'videos/1774159834890-volleyball_rally.mp4', 'Volleyball Rally', 'POV: you’re right in the middle of the rally at FIU 🏐');
-
-
+(2, 'videos/1774159834890-volleyball_rally.mp4', 'Volleyball Rally', 'POV: you’re right in the middle of the rally at FIU 🏐'),
+(2, 'videos/1776123407880-football-game.mp4', 'Football', 'It’s game day guys. Won 42-9, everyone was in flow state #fiufootball #collegelife #fiu #fyp #football');
 
 CREATE INDEX idx_videos_created_at
 ON videos(created_at DESC);
@@ -67,6 +63,7 @@ VALUES
 CREATE INDEX IF NOT EXISTS idx_likes_video_id ON likes(video_id);
 CREATE INDEX IF NOT EXISTS idx_likes_user_video ON likes(user_id, video_id);
 
+
 CREATE TABLE IF NOT EXISTS comments (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
@@ -81,12 +78,24 @@ CREATE TABLE IF NOT EXISTS comments (
 
 INSERT INTO comments (user_id, video_id, content, parent_comment_id)
 VALUES
-(1, 1, 'Larp larp larp', NULL),
-(2, 1, 'shut up dimwit', 1),
-(3, 1, 'No, no he has a point', 1);
+(1, 1, 'Earth spinning like a basketball #overthinkinghooper', NULL),
+(2, 1, 'Thats deep bro', 1),
+(3, 1, 'What is going on', 1);
 
 CREATE INDEX IF NOT EXISTS idx_comments_video_id ON comments(video_id);
 CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON comments(parent_comment_id);
+
+CREATE TABLE IF NOT EXISTS comment_likes (
+    user_id INT NOT NULL,
+    comment_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    
+    PRIMARY KEY (user_id, comment_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_comment_likes_comment_id ON comment_likes(comment_id);
 
 CREATE TABLE IF NOT EXISTS followers (
     id SERIAL PRIMARY KEY,
@@ -103,7 +112,16 @@ VALUES
 (1, 2), 
 (1, 3),  
 (2, 1),  
-(3, 1);  
+(2, 3),  
+(2, 4),  
+(2, 5),  
+(3, 1),
+(4, 2), 
+(5, 2), 
+(6, 2);
+
+
+
 
 CREATE INDEX IF NOT EXISTS idx_following_id ON followers(following_id);
 CREATE INDEX IF NOT EXISTS idx_follower_id ON followers(follower_id);

@@ -6,7 +6,10 @@ public struct Comment: Codable, Identifiable, Equatable, Hashable {
     public let videoId: Int
     public let content: String
     public let parentCommentId: Int?
+    public var likeCount: Int?
+    public var isLiked: Bool?
     public let createdAt: String
+
     
     // Additional properties we'll ensure the backend provides/maps
     public let username: String?
@@ -21,5 +24,7 @@ public struct Comment: Codable, Identifiable, Equatable, Hashable {
         case createdAt = "created_at"
         case username
         case replyCount = "reply_count"
+        case likeCount = "like_count"
+        case isLiked = "is_liked"
     }
 }

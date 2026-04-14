@@ -22,6 +22,8 @@ struct CommentSheetView: View {
     @State private var newCommentText: String = ""
     @State private var isLoading = true
     @State private var expandedComments: Set<Int> = []
+    @State private var likedComments: Set<Int> = []
+
     
     @State private var replyingTo: Comment? = nil
     @State private var replyText: String = ""
@@ -90,6 +92,23 @@ struct CommentSheetView: View {
                                 .buttonStyle(.plain)
                                         
                                 Spacer()
+                                
+                                Button {
+                                    toggleLike(for: comment.id)
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: likedComments.contains(comment.id) ? "heart.fill" : "heart")
+                                            .foregroundColor(likedComments.contains(comment.id) ? .red : .gray)
+                                        
+                                        //this is awful please fix this later
+                                        if comment.likeCount != nil || likedComments.contains(comment.id) {
+                                            Text("\(((comment.likeCount! != 0) ? (comment.isLiked! ? -1 + comment.likeCount! : 0 + comment.likeCount!) : 0) + (likedComments.contains(comment.id) ? 1 : 0))")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
+                                }
+                                .buttonStyle(.plain)
                             }
                             .padding(.top, 2)
                             
@@ -152,6 +171,50 @@ struct CommentSheetView: View {
         }
     }
     
+    private func toggleLike(for commentId: Int) {
+        Task {
+            if likedComments.contains(commentId) {
+                print("Attempting to unlike comment \(commentId)")
+                await unlikeComment(commentId: commentId)
+            } else {
+                print("Attempting to like comment \(commentId)")
+
+                await likeComment(commentId: commentId)
+            }
+        }
+    }
+    
+    private func likeComment(commentId: Int) async {
+        do {
+            let _ = try await APIClient.shared.post(endpoint: "/videos/comment/\(commentId)/like", body: EmptyRequest(), responseType: EmptyResponse.self)
+            print("\(likedComments)")
+            likedComments.insert(commentId)
+            print("\(likedComments)")
+
+            
+        } catch {
+            likedComments.remove(commentId)
+            print("Error liking comment \(commentId)")
+        }
+        
+    }
+    
+    private func unlikeComment(commentId: Int) async {
+        do {
+            let _ = try await APIClient.shared.delete(endpoint: "/videos/comment/\(commentId)/like", body: EmptyRequest(), responseType: EmptyResponse.self)
+            print("\(likedComments)")
+            likedComments.remove(commentId)
+            print("\(likedComments)")
+
+
+            
+        } catch {
+            likedComments.insert(commentId)
+            print("Error unliking comment \(commentId)")
+        }
+        
+    }
+    
     private func replies(for commentId: Int) -> [Comment] {
         comments
             .filter { $0.parentCommentId == commentId }
@@ -177,7 +240,7 @@ struct CommentSheetView: View {
             
             var newComm = response.comment
             if newComm.username == nil, let currentUsr = SessionManager.shared.currentUser {
-                newComm = Comment(id: newComm.id, userId: newComm.userId, videoId: newComm.videoId, content: newComm.content, parentCommentId: newComm.parentCommentId, createdAt: newComm.createdAt, username: currentUsr.username, replyCount: newComm.replyCount)
+                newComm = Comment(id: newComm.id, userId: newComm.userId, videoId: newComm.videoId, content: newComm.content, parentCommentId: newComm.parentCommentId, likeCount: newComm.likeCount, isLiked: newComm.isLiked, createdAt: newComm.createdAt, username: currentUsr.username, replyCount: newComm.replyCount)
             }
             
             replyingTo = nil
@@ -204,6 +267,12 @@ struct CommentSheetView: View {
                     self.comments = fetchedComments
                     self.commentCount = self.comments.count
                     self.isLoading = false
+                    
+                    for comment in fetchedComments {
+                        if comment.isLiked ?? false {
+                            likedComments.insert(comment.id)
+                        }
+                    }
                 }
             } catch {
                 print("Error getting user or comments: \(error)")
@@ -225,8 +294,9 @@ struct CommentSheetView: View {
                 var newComm = response.comment
                 // If backend does not immediately return username with the created comment for the optimistic model
                 // We'll update it with what we have in SessionManager
+                
                 if newComm.username == nil, let currentUsr = SessionManager.shared.currentUser {
-                    newComm = Comment(id: newComm.id, userId: newComm.userId, videoId: newComm.videoId, content: newComm.content, parentCommentId: newComm.parentCommentId, createdAt: newComm.createdAt, username: currentUsr.username, replyCount: newComm.replyCount)
+                    newComm = Comment(id: newComm.id, userId: newComm.userId, videoId: newComm.videoId, content: newComm.content, parentCommentId: newComm.parentCommentId, likeCount: newComm.likeCount, isLiked: newComm.isLiked, createdAt: newComm.createdAt, username: currentUsr.username, replyCount: newComm.replyCount)
                 }
                 
                 await MainActor.run {

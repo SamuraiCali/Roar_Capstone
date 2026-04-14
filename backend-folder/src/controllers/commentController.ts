@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
 import {
-  dbGetCommentsWithReplyCount,
+  dbGetEnrichedComments,
   dbCreateComment,
   dbGetCommentById,
-  dbDeleteCommentById,
+  dbDeleteCommentById
 } from "../utils/dbUtils";
 import { AuthRequest } from "../routes/authMiddleware";
 
@@ -55,8 +55,11 @@ export const postCommentHandler = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getCommentsHandler = async (req: Request, res: Response) => {
+export const getCommentsHandler = async (req: AuthRequest, res: Response) => {
   try {
+    if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+    
+    const userId = Number(req.user.id);
     const videoId = req.params.videoId;
 
     if (!videoId) {
@@ -64,10 +67,7 @@ export const getCommentsHandler = async (req: Request, res: Response) => {
       return;
     }
 
-    console.log("Attempting to get comments for video id ", videoId)
-
-
-    const comments = await dbGetCommentsWithReplyCount(Number(videoId));
+    const comments = await dbGetEnrichedComments({userId: userId, videoId: Number(videoId)});
     res.status(200).json({ comments: comments });
   } catch (err) {
     console.log("Error while fetching comment: ", err);

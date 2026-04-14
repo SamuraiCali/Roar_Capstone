@@ -189,15 +189,40 @@ export const dbGetVideoById = async (id: number) => {
     return result.rowCount ? result.rows[0] : null;
 };
 
-export const dbGetCommentsWithReplyCount = async (videoId: number) => {
+export const dbGetEnrichedComments = async (commentData: {userId: number, videoId: number}) => {
+    const {userId, videoId} = commentData
+// const query = `
+// SELECT 
+//   c.*,
+//   u.username,
+//   COALESCE(rc.reply_count, 0)::INT AS reply_count
+// FROM comments c
+// LEFT JOIN users u
+//   ON u.id = c.user_id
+// LEFT JOIN (
+//   SELECT parent_comment_id, COUNT(*) AS reply_count
+//   FROM comments
+//   WHERE parent_comment_id IS NOT NULL
+//   GROUP BY parent_comment_id
+// ) rc
+//   ON rc.parent_comment_id = c.id
+// WHERE c.video_id = $1
+// ORDER BY c.created_at DESC;
+// `
 const query = `
 SELECT 
   c.*,
   u.username,
-  COALESCE(rc.reply_count, 0)::INT AS reply_count
+  COALESCE(rc.reply_count, 0)::INT AS reply_count,
+  COALESCE(lc.like_count, 0)::INT AS like_count,
+  (cl_user.user_id IS NOT NULL) AS is_liked
+
 FROM comments c
+
 LEFT JOIN users u
   ON u.id = c.user_id
+
+-- reply count
 LEFT JOIN (
   SELECT parent_comment_id, COUNT(*) AS reply_count
   FROM comments
@@ -205,13 +230,28 @@ LEFT JOIN (
   GROUP BY parent_comment_id
 ) rc
   ON rc.parent_comment_id = c.id
+
+-- like count
+LEFT JOIN (
+  SELECT comment_id, COUNT(*) AS like_count
+  FROM comment_likes
+  GROUP BY comment_id
+) lc
+  ON lc.comment_id = c.id
+
+-- whether current user liked it
+LEFT JOIN comment_likes cl_user
+  ON cl_user.comment_id = c.id
+  AND cl_user.user_id = $2
+
 WHERE c.video_id = $1
+
 ORDER BY c.created_at DESC;
 `
 
     const result = await pool.query(
         query,
-        [videoId],
+        [videoId, userId],
     );
     return result.rows;
 };
@@ -356,4 +396,16 @@ GROUP BY u.id, u.username;`
         console.log(result.rows[0])
     }
     return result.rowCount ? result.rows[0] : null
+}
+
+export const dbCreateCommentLike = async (likeData: {userId: number, commentId: number}) => {
+    const {userId, commentId} = likeData
+    const query = "INSERT INTO comment_likes (user_id, comment_id) VALUES ($1, $2) ON CONFLICT DO NOTHING;"
+    await pool.query(query, [userId, commentId])
+}
+
+export const dbDeleteCommentLike = async (likeData: {userId: number, commentId: number}) => {
+    const {userId, commentId} = likeData
+    const query = "DELETE FROM comment_likes WHERE user_id = $1 AND comment_id = $2"
+    await pool.query(query, [userId, commentId])
 }
