@@ -13,6 +13,7 @@ struct PostCommentResponse: Decodable {
     let comment: Comment
 }
 
+
 struct CommentSheetView: View {
     let post: Post
     @Binding var commentCount: Int
@@ -21,6 +22,10 @@ struct CommentSheetView: View {
     @State private var newCommentText: String = ""
     @State private var isLoading = true
     @State private var expandedComments: Set<Int> = []
+    
+    @State private var replyingTo: Comment? = nil
+    @State private var replyText: String = ""
+    @FocusState private var isReplyFocused: Bool
     
     private var topLevelComments: [Comment] {
         comments.filter { $0.parentCommentId == nil }
@@ -40,7 +45,9 @@ struct CommentSheetView: View {
     
     var body: some View {
         NavigationView {
+            
             VStack {
+                
                 if isLoading {
                     Spacer()
                     ProgressView()
@@ -50,6 +57,14 @@ struct CommentSheetView: View {
                     Text("No comments yet. Be the first!")
                         .foregroundColor(.secondary)
                     Spacer()
+                } else if replyingTo != nil {
+                    ReplyComposerView(
+                        replyingTo: $replyingTo,
+                        text: $replyText,
+                        isFocused: $isReplyFocused,
+                        onSend: sendReply
+                    )
+                    .transition(.move(edge: .bottom))
                 } else {
                     List(topLevelComments) { comment in
                         VStack(alignment: .leading, spacing: 4) {
@@ -63,11 +78,16 @@ struct CommentSheetView: View {
                                 .font(.body)
                             
                             HStack {
-                                Button(action: {}) {
+                                Button {
+                                    replyingTo = comment
+                                    replyText = ""
+                                    isReplyFocused = true
+                                } label: {
                                     Text("Reply")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
+                                .buttonStyle(.plain)
                                         
                                 Spacer()
                             }
@@ -76,8 +96,6 @@ struct CommentSheetView: View {
                             if let count = comment.replyCount, count > 0 {
                                 Button(action: {
                                     toggleReplies(for: comment.id)
-                                    print("Toggling replies for \(comment.id)")
-                                    print("Expanded Comments: \(expandedComments)")
                                 }) {
                                     Text(expandedComments.contains(comment.id)
                                          ? "Hide replies"
@@ -148,17 +166,39 @@ struct CommentSheetView: View {
         }
     }
     
+    private func sendReply() async {
+        do {
+            guard let parent = replyingTo else { return }
+            let text = replyText.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !text.isEmpty else { return }
+            
+            let req = PostCommentRequest(content: text, parent_comment_id: parent.id)
+            let response = try await APIClient.shared.post(endpoint: "/videos/\(post.id)/comments", body: req, responseType: PostCommentResponse.self)
+            
+            var newComm = response.comment
+            if newComm.username == nil, let currentUsr = SessionManager.shared.currentUser {
+                newComm = Comment(id: newComm.id, userId: newComm.userId, videoId: newComm.videoId, content: newComm.content, parentCommentId: newComm.parentCommentId, createdAt: newComm.createdAt, username: currentUsr.username, replyCount: newComm.replyCount)
+            }
+            
+            replyingTo = nil
+            replyText = ""
+            isReplyFocused = false
+            
+            await MainActor.run {
+                self.comments.insert(newComm, at: 0)
+                self.commentCount += 1
+            }
+            
+        } catch {
+            print("Error sending reply")
+        }
+    }
+    
     private func fetchComments() {
         Task {
             do {
                 let response = try await APIClient.shared.get(endpoint: "/videos/\(post.id)/comments", responseType: GetCommentsResponse.self)
                 let fetchedComments = response.comments
-                
-                for comment in fetchedComments {
-                    if let pid = comment.parentCommentId {
-                        print("Comment ID \(comment.id) is reply to comment \(pid)")
-                    }
-                }
                 
                 await MainActor.run {
                     self.comments = fetchedComments
