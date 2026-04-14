@@ -1,6 +1,6 @@
 import { Response } from "express";
 import { AuthRequest } from "../routes/authMiddleware";
-import { dbGetProfileDataFromUsername } from "../utils/dbUtils";
+import { dbGetProfileData } from "../utils/dbUtils";
 
 export const getProfileHandler = async (req: AuthRequest, res: Response) => {
   try {
@@ -15,17 +15,10 @@ export const getProfileHandler = async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    console.log("attempting to get profile data onn ", username)
-
-
-    const profileData = await dbGetProfileDataFromUsername(username as string)
+    const profileData = await dbGetProfileData({username: username as string, userId: Number(req.user.id)})
 
     if(!profileData) return res.status(404).json({error: "User not found"})
 
-    // const likeResult = await dbCreateLike({
-    //   userId: user_id,
-    //   videoId: Number(videoId),
-    // });
     res.json({ ...profileData });
   } catch (err) {
     console.log("Error while getting profile data: ", err);

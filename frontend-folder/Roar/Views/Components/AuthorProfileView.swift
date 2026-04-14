@@ -1,8 +1,10 @@
 import SwiftUI
 
-struct FollowCountResponse: Decodable {
-    let follower_count: Int
-}
+//struct FollowCountResponse: Decodable {
+//    let follower_count: Int
+//}
+
+struct EmptyRequest: Encodable {}
 
 struct AuthorProfileView: View {
     // Changed this to use username since that's what backend relies on
@@ -11,6 +13,7 @@ struct AuthorProfileView: View {
     @State private var followersCount = 0
     @State private var followingCount = 0
     @State private var posts: [Post] = []
+    @State private var isFollowing = false
     
     @State private var isLoading = true
     
@@ -39,6 +42,24 @@ struct AuthorProfileView: View {
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.white)
+                    
+                    Button(action: {
+                        Task {
+                            if isFollowing {
+                                unfollowUser()
+                            } else {
+                                followUser()
+                            }
+                        }
+                    }) {
+                        Text(isFollowing ? "Following" : "Follow")
+                            .font(.headline)
+                            .foregroundColor(isFollowing ? .black : .white)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 10)
+                            .background(isFollowing ? Color.roarGold : Color.roarBlue)
+                            .cornerRadius(10)
+                    }
                     
                     // Stats
                     HStack(spacing: 40) {
@@ -112,6 +133,7 @@ struct AuthorProfileView: View {
                 await MainActor.run {
                     self.followersCount = profileData.follower_count
                     self.followingCount = profileData.following_count
+                    self.isFollowing = profileData.is_followed
                     self.posts = posts
                     
                     self.isLoading = false
@@ -122,4 +144,37 @@ struct AuthorProfileView: View {
             }
         }
     }
+    
+    private func followUser() {
+        Task {
+            do {
+                _ = try await APIClient.shared.post(endpoint: "/users/\(username)/follow", body: EmptyRequest(), responseType: EmptyResponse.self)
+                
+                await MainActor.run {
+                    isFollowing = true
+                    followersCount += 1
+                }
+                
+            } catch {
+                print("Failed to follow user \(username)")
+            }
+        }
+    }
+    
+    private func unfollowUser() {
+        Task {
+            do {
+                _ = try await APIClient.shared.delete(endpoint: "/users/\(username)/follow", body: EmptyRequest(), responseType: EmptyResponse.self)
+                
+                await MainActor.run {
+                    isFollowing = false
+                    followersCount -= 1
+                }
+                
+            } catch {
+                print("Failed to unfollow user \(username)")
+            }
+        }
+    }
 }
+

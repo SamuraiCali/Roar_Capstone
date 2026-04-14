@@ -302,7 +302,8 @@ export const dbGetUserByUsername = async (username: string) => {
     return result;
 };
 
-export const dbGetProfileDataFromUsername = async (username: string) => {
+export const dbGetProfileData = async (profileData: {userId: Number, username: string}) => {
+    const {userId, username} = profileData
     const query = `
     SELECT 
   u.id,
@@ -315,6 +316,13 @@ export const dbGetProfileDataFromUsername = async (username: string) => {
   (SELECT COUNT(*) 
    FROM followers 
    WHERE follower_id = u.id)::INT AS following_count,
+
+    EXISTS (
+    SELECT 1
+    FROM followers f
+    WHERE f.follower_id = $2
+      AND f.following_id = u.id
+  ) AS is_followed,
 
   COALESCE(
     JSON_AGG(
@@ -337,7 +345,7 @@ WHERE u.username = $1
 
 GROUP BY u.id, u.username;`
 
-    const result = await pool.query(query, [username])
+    const result = await pool.query(query, [username, userId])
     if(result.rowCount) {
         console.log(result.rows[0])
     }

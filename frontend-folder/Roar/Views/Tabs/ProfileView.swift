@@ -5,6 +5,7 @@ struct UserProfile: Codable {
     let username: String
     let follower_count: Int
     let following_count: Int
+    let is_followed: Bool
     let videos: [Video]
 }
 
@@ -107,9 +108,6 @@ struct ProfileView: View {
                         
                         Divider()
                         
-//                        Text("Posts Grid Integration Pending")
-//                            .foregroundColor(.gray)
-//                            .padding(.top, 40)
                         ScrollView {
                             if isLoading {
                                 ProgressView()
@@ -176,34 +174,5 @@ struct ProfileView: View {
         SessionManager.shared.clearSession()
         // Ensure App resets to AuthView by clearing userDefaults and dismissing
     }
-    
-//    func fetchVideosDetails(videos: [Video]) async -> [Post] {
-//        await withTaskGroup(of: Post?.self) { group in
-//            
-//            for video in videos {
-//                group.addTask {
-//                    do {
-//                        return try await APIClient.shared.get(
-//                            endpoint: "/videos/\(video.video_id)",
-//                            responseType: Post.self
-//                        )
-//                    } catch {
-//                        // log error if needed
-//                        print("Failed to fetch video \(video.video_id): \(error)")
-//                        return nil
-//                    }
-//                }
-//            }
-//            
-//            var results: [Post] = []
-//            
-//            for await post in group {
-//                if let post = post {
-//                    results.append(post)
-//                }
-//            }
-//            
-//            return results
-//        }
-//    }
+
 }
