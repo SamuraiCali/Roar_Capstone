@@ -8,6 +8,7 @@ public struct Comment: Codable, Identifiable, Equatable, Hashable {
     public let parentCommentId: Int?
     public var likeCount: Int?
     public var isLiked: Bool?
+    public let profileImageKey: String?
     public let createdAt: String
 
     
@@ -26,5 +27,6 @@ public struct Comment: Codable, Identifiable, Equatable, Hashable {
         case replyCount = "reply_count"
         case likeCount = "like_count"
         case isLiked = "is_liked"
+        case profileImageKey = "profile_image_key"
     }
 }

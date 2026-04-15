@@ -13,6 +13,8 @@ struct PostCommentResponse: Decodable {
     let comment: Comment
 }
 
+public let S3_BASE_URL = "https://s3-roar-165777654255-us-east-1-an.s3.us-east-1.amazonaws.com"
+
 
 struct CommentSheetView: View {
     let post: Post
@@ -69,87 +71,130 @@ struct CommentSheetView: View {
                     .transition(.move(edge: .bottom))
                 } else {
                     List(topLevelComments) { comment in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(comment.username ?? "Unknown User")
-                                .font(.body)
+                        HStack(alignment: .top, spacing: 12) {
+                            
+                            if let key = comment.profileImageKey,
+                                       let url = URL(string: "\(S3_BASE_URL)/\(key)") {
 
-                                .fontWeight(.semibold)
-                                .foregroundColor(.gray)
+                                        AsyncImage(url: url) { phase in
+                                            switch phase {
+                                            case .empty:
+                                                ProgressView()
+                                                    .frame(width: 40, height: 40)
+
+                                            case .success(let image):
+                                                image
+                                                    .resizable()
+                                                    .scaledToFill()
+                                                    .frame(width: 40, height: 40)
+                                                    .clipShape(Circle())
+
+                                            case .failure:
+                                                Image(systemName: "person.crop.circle.fill")
+                                                    .resizable()
+                                                    .scaledToFill()
+                                                    .frame(width: 40, height: 40)
+                                                    .foregroundColor(.gray)
+
+                                            @unknown default:
+                                                EmptyView()
+                                            }
+                                        }
+
+                                    } else {
+                                        // Default avatar when nil
+                                        Image(systemName: "person.crop.circle.fill")
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 40, height: 40)
+                                            .foregroundColor(.gray)
+                                    }
                             
-                            Text(comment.content)
-                                .font(.body)
                             
-                            HStack {
-                                Button {
-                                    replyingTo = comment
-                                    replyText = ""
-                                    isReplyFocused = true
-                                } label: {
-                                    Text("Reply")
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(comment.username ?? "Unknown User")
+                                    .font(.body)
+                                
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.gray)
+                                
+                                Text(comment.content)
+                                    .font(.body)
+                                
+                                HStack {
+                                    Button {
+                                        replyingTo = comment
+                                        replyText = ""
+                                        isReplyFocused = true
+                                    } label: {
+                                        Text("Reply")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .buttonStyle(.plain)
+                                    
+                                    Spacer()
+                                    
+                                    LikeButtonView(isLikedLocal: likedComments.contains(comment.id), isLikedServer: comment.isLiked, likeCount: comment.likeCount) {
+                                        toggleLike(for: comment.id)
+                                    }
+                                    
+                                }
+                                .padding(.top, 2)
+                                
+                                if let count = comment.replyCount, count > 0 {
+                                    Button(action: {
+                                        toggleReplies(for: comment.id)
+                                    }) {
+                                        HStack(spacing: 4) {
+                                            Text(expandedComments.contains(comment.id)
+                                                 ? "Hide replies"
+                                                 : "View \(count) replies")
+                                            
+                                            Image(systemName: expandedComments.contains(comment.id)
+                                                  ? "chevron.up"
+                                                  : "chevron.down")
+                                        }
                                         .font(.caption)
                                         .foregroundColor(.secondary)
-                                }
-                                .buttonStyle(.plain)
-                                        
-                                Spacer()
-                                
-                                LikeButtonView(isLikedLocal: likedComments.contains(comment.id), isLikedServer: comment.isLiked, likeCount: comment.likeCount) {
-                                    toggleLike(for: comment.id)
-                                }
-
-                            }
-                            .padding(.top, 2)
-                            
-                            if let count = comment.replyCount, count > 0 {
-                                Button(action: {
-                                    toggleReplies(for: comment.id)
-                                }) {
-                                    HStack(spacing: 4) {
-                                        Text(expandedComments.contains(comment.id)
-                                             ? "Hide replies"
-                                             : "View \(count) replies")
-                                        
-                                        Image(systemName: expandedComments.contains(comment.id)
-                                              ? "chevron.up"
-                                              : "chevron.down")
                                     }
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .buttonStyle(.plain)
+                                    
                                 }
-                                .buttonStyle(.plain)
-
-                            }
-                            
-                            if expandedComments.contains(comment.id) {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    ForEach(replies(for: comment.id)) { reply in
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            
-                                            Text(reply.username ?? "Unknown User")
-                                                .font(.body)
-                                                .foregroundColor(.gray)
-                                                .padding(.leading, 12)
-
-                                            HStack {
-
-                                                Text(reply.content)
+                                
+                                if expandedComments.contains(comment.id) {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        ForEach(replies(for: comment.id)) { reply in
+                                            VStack(alignment: .leading, spacing: 4) {
+                                                
+                                                Text(reply.username ?? "Unknown User")
                                                     .font(.body)
+                                                    .foregroundColor(.gray)
                                                     .padding(.leading, 12)
                                                 
+                                                HStack {
+                                                    
+                                                    Text(reply.content)
+                                                        .font(.body)
+                                                        .padding(.leading, 12)
+                                                    
                                                     Spacer()
-                            
+                                                    
                                                     LikeButtonView(isLikedLocal: likedComments.contains(reply.id), isLikedServer: reply.isLiked, likeCount: reply.likeCount) {
                                                         toggleLike(for: reply.id)
                                                     }
-                                                
+                                                    
+                                                }
                                             }
                                         }
                                     }
+                                    .padding(.top, 6)
                                 }
-                                .padding(.top, 6)
                             }
+                            .padding(.vertical, 4)
+                            
                         }
-                        .padding(.vertical, 4)
                     }
                     .listStyle(PlainListStyle())
                 }
@@ -236,7 +281,7 @@ struct CommentSheetView: View {
             
             var newComm = response.comment
             if newComm.username == nil, let currentUsr = SessionManager.shared.currentUser {
-                newComm = Comment(id: newComm.id, userId: newComm.userId, videoId: newComm.videoId, content: newComm.content, parentCommentId: newComm.parentCommentId, likeCount: newComm.likeCount, isLiked: newComm.isLiked, createdAt: newComm.createdAt, username: currentUsr.username, replyCount: newComm.replyCount)
+                newComm = Comment(id: newComm.id, userId: newComm.userId, videoId: newComm.videoId, content: newComm.content, parentCommentId: newComm.parentCommentId, likeCount: newComm.likeCount, isLiked: newComm.isLiked, profileImageKey: newComm.profileImageKey, createdAt: newComm.createdAt, username: currentUsr.username, replyCount: newComm.replyCount)
             }
             
             replyingTo = nil
@@ -292,7 +337,7 @@ struct CommentSheetView: View {
                 // We'll update it with what we have in SessionManager
                 
                 if newComm.username == nil, let currentUsr = SessionManager.shared.currentUser {
-                    newComm = Comment(id: newComm.id, userId: newComm.userId, videoId: newComm.videoId, content: newComm.content, parentCommentId: newComm.parentCommentId, likeCount: newComm.likeCount, isLiked: newComm.isLiked, createdAt: newComm.createdAt, username: currentUsr.username, replyCount: newComm.replyCount)
+                    newComm = Comment(id: newComm.id, userId: newComm.userId, videoId: newComm.videoId, content: newComm.content, parentCommentId: newComm.parentCommentId, likeCount: newComm.likeCount, isLiked: newComm.isLiked, profileImageKey: newComm.profileImageKey, createdAt: newComm.createdAt, username: currentUsr.username, replyCount: newComm.replyCount)
                 }
                 
                 await MainActor.run {

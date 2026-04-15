@@ -163,13 +163,14 @@ extension EditProfileView {
         
         Task {
             do {
-                let _ = await uploadProfileImage()
+                let key = await uploadProfileImage()
                 
-                if let user = currentUser {
+                if let user = currentUser, let imageKey = key {
 
                     var updatedUser = user
-
+                    updatedUser.profileImageUrl = "\(S3_BASE_URL)/\(imageKey)"
                     updatedUser.profileImageUpdated = (updatedUser.profileImageUpdated ?? 0) + 1
+                    print("\(String(describing: updatedUser.imageUrlWithVersion))")
 
                     await MainActor.run {
                         currentUser = updatedUser

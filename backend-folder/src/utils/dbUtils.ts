@@ -213,6 +213,7 @@ const query = `
 SELECT 
   c.*,
   u.username,
+  u.profile_image_key,
   COALESCE(rc.reply_count, 0)::INT AS reply_count,
   COALESCE(lc.like_count, 0)::INT AS like_count,
   (cl_user.user_id IS NOT NULL) AS is_liked
