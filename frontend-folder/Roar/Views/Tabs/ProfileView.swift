@@ -27,6 +27,7 @@ struct ProfileView: View {
     @State private var isLoading = true
     @State private var showingEditProfile = false
     
+    
     let columns = [
         GridItem(.flexible(), spacing: 2),
         GridItem(.flexible(), spacing: 2),
@@ -49,7 +50,7 @@ struct ProfileView: View {
                                     .overlay(Circle().stroke(Color.roarGold, lineWidth: 3))
                                     .shadow(radius: 5)
 
-                                if let urlString = currentUser?.profileImageUrl,
+                                if let urlString = currentUser?.imageUrlWithVersion,
                                    let url = URL(string: urlString), let user = currentUser {
                                     
                                     let _ = user.profileImageUpdated
@@ -86,19 +87,9 @@ struct ProfileView: View {
                                         .frame(width: 100, height: 100)
                                         .clipShape(Circle())
                                 }
-//                            Circle()
-//                                .fill(Color.roarBlue)
-//                                .frame(width: 100, height: 100)
-//                                .overlay(Circle().stroke(Color.roarGold, lineWidth: 3))
-//                                .shadow(radius: 5)
-//                            
-//                            Image(systemName: "person.crop.circle.fill")
-//                                .resizable()
-//                                .foregroundColor(.white)
-//                                .frame(width: 100, height: 100)
-//                                .clipShape(Circle())
                         }
                         .padding(.top, 20)
+                        .id(currentUser?.profileImageUpdated ?? 0)
                         
                         Text(currentUser?.username ?? "Me")
                             .font(.title2)
@@ -109,7 +100,6 @@ struct ProfileView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
-                        // Edit Profile Button (Placeholder MVP)
                         Button(action: {
                             showingEditProfile = true
                         }) {
@@ -186,6 +176,7 @@ struct ProfileView: View {
             EditProfileView(currentUser: $currentUser)
         }
         .onAppear {
+            
             fetchData()
         }
     }

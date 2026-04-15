@@ -164,10 +164,17 @@ extension EditProfileView {
         Task {
             do {
                 let _ = await uploadProfileImage()
-                if currentUser != nil {
-                    print("updating user: \(String(describing: currentUser?.profileImageUpdated))")
-                    currentUser?.profileImageUpdated = 1 + (currentUser?.profileImageUpdated ?? 0)
-                    print("updated user: \(String(describing: currentUser?.profileImageUpdated))")
+                
+                if let user = currentUser {
+
+                    var updatedUser = user
+
+                    updatedUser.profileImageUpdated = (updatedUser.profileImageUpdated ?? 0) + 1
+
+                    await MainActor.run {
+                        currentUser = updatedUser
+
+                    }
 
                 }
                 

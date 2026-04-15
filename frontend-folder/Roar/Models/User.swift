@@ -5,7 +5,7 @@ public struct User: Codable, Identifiable, Equatable, Hashable {
     public let username: String
     public let email: String?
     //computed on login from SessionManager
-    public let profileImageUrl: String?
+    public var profileImageUrl: String?
     public var profileImageUpdated: Int?
     public let createdAt: String?
     
@@ -15,5 +15,13 @@ public struct User: Codable, Identifiable, Equatable, Hashable {
         case email
         case profileImageUrl
         case createdAt = "created_at"
+    }
+}
+
+extension User {
+    var imageUrlWithVersion: String? {
+        guard let baseUrl = profileImageUrl else { return nil }
+        let version = profileImageUpdated ?? 0
+        return "\(baseUrl)?v=\(max(version, 1))"
     }
 }
