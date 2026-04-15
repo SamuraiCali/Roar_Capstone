@@ -9,6 +9,14 @@ import SwiftUI
 
 struct AvatarView: View {
     let url: URL?
+    let width: Int
+    let height: Int
+    
+    init(url: URL?, width: Int = 40, height: Int = 40) {
+        self.url = url
+        self.width = width
+        self.height = height
+    }
     
     @StateObject private var loader = ImageLoader()
     
@@ -25,7 +33,7 @@ struct AvatarView: View {
                     .foregroundColor(.gray)
             }
         }
-        .frame(width: 40, height: 40)
+        .frame(width: CGFloat(width), height: CGFloat(height))
         .clipShape(Circle())
         .onAppear {
             if let url {

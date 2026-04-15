@@ -51,42 +51,20 @@ struct ProfileView: View {
                                     .overlay(Circle().stroke(Color.roarGold, lineWidth: 3))
                                     .shadow(radius: 5)
 
-                                if let urlString = currentUser?.imageUrlWithVersion,
-                                   let url = URL(string: urlString), let user = currentUser {
+//                                if let urlString = currentUser?.imageUrlWithVersion,
+//                                   let url = URL(string: urlString), let user = currentUser {
+                            if let user = currentUser, let key = user.profileImageKey, let url = URL(string: "\(S3_BASE_URL)/\(key)?v=\(Date().timeIntervalSince1970)") {
+                                
+                                AvatarView(url: url, width: 100, height: 100)
                                     
-                                    let _ = user.profileImageUpdated
-
-                                    AsyncImage(url: url) { phase in
-                                        switch phase {
-                                        case .empty:
-                                            ProgressView()
-                                                .frame(width: 100, height: 100)
-
-                                        case .success(let image):
-                                            image
-                                                .resizable()
-                                                .scaledToFill()
-                                                .frame(width: 100, height: 100)
-                                                .clipShape(Circle())
-
-                                        case .failure(_):
-                                            Image(systemName: "person.crop.circle.fill")
-                                                .resizable()
-                                                .foregroundColor(.white)
-                                                .frame(width: 100, height: 100)
-                                                .clipShape(Circle())
-
-                                        @unknown default:
-                                            EmptyView()
-                                        }
-                                    }
-
                                 } else {
                                     Image(systemName: "person.crop.circle.fill")
                                         .resizable()
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.pink)
                                         .frame(width: 100, height: 100)
                                         .clipShape(Circle())
+                                    
+                                    
                                 }
                         }
                         .padding(.top, 20)

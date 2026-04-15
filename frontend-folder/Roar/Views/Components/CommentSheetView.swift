@@ -171,15 +171,17 @@ struct CommentSheetView: View {
                                                     
                                                     AvatarView(url: url)
                                                 } else {
-                                                    Circle()
-                                                        .fill(Color.gray)
-                                                        .frame(width: 40, height: 40)
-                                                        .overlay(Circle().stroke(Color.white, lineWidth: 1))
-                                                    
-                                                    Image(systemName: "person.circle.fill")
-                                                        .resizable()
-                                                        .foregroundColor(.white)
-                                                        .frame(width: 40, height: 40)
+                                                    ZStack {
+                                                        Circle()
+                                                            .fill(Color.gray)
+                                                            .frame(width: 40, height: 40)
+                                                            .overlay(Circle().stroke(Color.white, lineWidth: 1))
+                                                        
+                                                        Image(systemName: "person.circle.fill")
+                                                            .resizable()
+                                                            .foregroundColor(.white)
+                                                            .frame(width: 40, height: 40)
+                                                    }
                                                     
                                                 }
 

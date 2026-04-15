@@ -6,6 +6,8 @@ public struct User: Codable, Identifiable, Equatable, Hashable {
     public let email: String?
     //computed on login from SessionManager
     public var profileImageUrl: String?
+    public var profileImageKey: String?
+
     public var profileImageUpdated: Int?
     public let createdAt: String?
     
@@ -14,6 +16,7 @@ public struct User: Codable, Identifiable, Equatable, Hashable {
         case username
         case email
         case profileImageUrl
+        case profileImageKey = "profile_image_key"
         case createdAt = "created_at"
     }
 }

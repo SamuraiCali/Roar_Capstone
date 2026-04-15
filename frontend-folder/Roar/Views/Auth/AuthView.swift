@@ -18,7 +18,7 @@ struct LoginRequest: Encodable {
 }
 
 struct AuthView: View {
-    @Binding var isSignedIn: Bool
+//    @Binding var isSignedIn: Bool
     @State private var isSignUp = false
     @State private var email = ""
     @State private var username = ""
@@ -96,7 +96,7 @@ struct AuthView: View {
                 await MainActor.run {
                     SessionManager.shared.saveSession(token: response.token, user: response.user)
                     isLoading = false
-                    isSignedIn = true
+//                    isSignedIn = true
                 }
             } catch {
                 await MainActor.run {
@@ -117,7 +117,7 @@ struct AuthView: View {
                 await MainActor.run {
                     SessionManager.shared.saveSession(token: response.token, user: response.user)
                     isLoading = false
-                    isSignedIn = true
+//                    isSignedIn = true
                 }
             } catch {
                 await MainActor.run {

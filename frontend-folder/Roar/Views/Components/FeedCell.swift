@@ -111,11 +111,7 @@ struct FeedCell: View {
                                             .frame(width: 40, height: 40)
                                             .overlay(Circle().stroke(Color.roarGold, lineWidth: 2))
                                             .shadow(radius: 5)
-//                                    if let key = post.profileImageKey {
-//                                        
-//                                        var url = "\(S3_BASE_URL)/\(key)"
-                                    if !profileImageURL.isEmpty{
-                                            let url = URL(string: profileImageURL)
+                                    if !profileImageURL.isEmpty, let url = URL(string: profileImageURL){
                                             AvatarView(url: url)
                                     } else {
                                         Circle()
