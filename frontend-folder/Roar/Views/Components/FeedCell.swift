@@ -16,6 +16,20 @@ struct FeedCell: View {
     @State private var authorId: Int?
     @State private var authorUsername: String = "roar_creator"
     @State private var isPausedByUser = false
+    @State private var profileImageUrl: String?
+    
+    var profileImageURL: String {
+        guard let key = post.profileImageKey else { return "" }
+
+        let url = "\(S3_BASE_URL)/\(key)?v=\(Date().timeIntervalSince1970)"
+
+//        if let currentUser = SessionManager.shared.currentUser,
+//           currentUser.username == post.username {
+//            url += "?v=\(currentUser.profileImageUpdated ?? 0)"
+//        }
+
+        return url
+    }
     
     var body: some View {
         ZStack {
@@ -87,33 +101,38 @@ struct FeedCell: View {
                     // Right Column: Action Buttons
                     VStack(spacing: 24) {
                         // Profile Pic Placeholder
-                        if let aid = authorId {
                             NavigationLink(destination: AuthorProfileView(username: authorUsername)) {
                                 ZStack {
-                                    Circle()
-                                        .fill(Color.gray)
-                                        .frame(width: 48, height: 48)
-                                        .overlay(Circle().stroke(Color.white, lineWidth: 1))
                                     
-                                    Image(systemName: "person.circle.fill")
-                                        .resizable()
-                                        .foregroundColor(.white)
-                                        .frame(width: 48, height: 48)
+//                                    if let key = post.profileImageKey, let url = URL(string: "\(S3_BASE_URL)/\(key)") {
+                                    
+                                    Circle()
+//                                            .fill(Color.gray)
+                                            .frame(width: 40, height: 40)
+                                            .overlay(Circle().stroke(Color.roarGold, lineWidth: 2))
+                                            .shadow(radius: 5)
+//                                    if let key = post.profileImageKey {
+//                                        
+//                                        var url = "\(S3_BASE_URL)/\(key)"
+                                    if !profileImageURL.isEmpty{
+                                            let url = URL(string: profileImageURL)
+                                            AvatarView(url: url)
+                                    } else {
+                                        Circle()
+                                            .fill(Color.gray)
+                                            .frame(width: 48, height: 48)
+                                            .overlay(Circle().stroke(Color.white, lineWidth: 1))
+                                        
+                                        Image(systemName: "person.circle.fill")
+                                            .resizable()
+                                            .foregroundColor(.white)
+                                            .frame(width: 48, height: 48)
+                
+                                            }
+//
                                 }
                             }
-                        } else {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.gray)
-                                    .frame(width: 48, height: 48)
-                                    .overlay(Circle().stroke(Color.white, lineWidth: 1))
-                                
-                                Image(systemName: "person.circle.fill")
-                                    .resizable()
-                                    .foregroundColor(.white)
-                                    .frame(width: 48, height: 48)
-                            }
-                        }
+                        
                         
                         // Like Button
                         VStack(spacing: 4) {
@@ -182,6 +201,14 @@ struct FeedCell: View {
             isLiked = post.isLiked ?? false
             authorUsername = post.username ?? "roar_creator"
             authorId = post.userId
+//            if let key = post.profileImageKey {
+//                print("Key: \(key)")
+//                profileImageUrl = "\(S3_BASE_URL)/\(key)"
+//                print("State url: \(String(describing: profileImageUrl))")
+//                print("Local url: \(S3_BASE_URL)/\(key)")
+//
+//
+//            }
             
             isPausedByUser = false // Auto resume when appearing if it was active
         }

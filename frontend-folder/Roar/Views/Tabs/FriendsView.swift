@@ -1,46 +1,81 @@
 import SwiftUI
 
 struct FriendsView: View {
-    @State private var followingPosts: [Post] = []
+    @State private var posts: [Post] = []
     @State private var recommendedUsers: [User] = []
     @State private var isLoading = false
     @State private var currentUserId: Int?
+    @State private var errorMessage: String?
     
     var body: some View {
         NavigationView {
             ZStack {
                 Color.black.ignoresSafeArea()
                 
-                VStack {
-                    if isLoading {
-                        Spacer()
-                        ProgressView("Loading Friends Flow...")
-                        Spacer()
-                    } else if currentUserId == nil {
-                        Spacer()
-                        Text("Sign in to see your friends' posts.")
-                            .foregroundColor(.secondary)
-                        Spacer()
+                Group {
+                    if isLoading && posts.isEmpty {
+                        ProgressView("Loading posts...")
+                    } else if let error = errorMessage {
+                        VStack {
+                            Text("Failed to load posts")
+                                .font(.headline)
+                            Text(error)
+                                .font(.subheadline)
+                                .foregroundColor(.red)
+                                .multilineTextAlignment(.center)
+                            Button("Retry") {
+                                fetchPosts()
+                            }
+                            .padding()
+                        }
+                    } else if posts.isEmpty {
+                        VStack {
+                            Text("No posts available. Follow some panthers to see their posts!")
+                                .foregroundColor(.secondary)
+                            Button("Refresh") {
+                                fetchPosts()
+                            }
+                            .padding()
+                        }
                     } else {
-                        Text("Friends Feed Integration Pending")
-                            .foregroundColor(.gray)
-                            .padding(.top, 40)
-                        Spacer()
+                        VerticalFeedView(posts: posts) {
+                            await fetchPostsAsync()
+                        }
                     }
+                }
+                .navigationBarHidden(true) // Hide navigation bar for full screen effect
+                .onAppear {
+                    fetchPosts()
                 }
             }
             .navigationTitle("Friends")
             .navigationBarHidden(true)
             .onAppear {
-                fetchData()
+                fetchPosts()
             }
         }
     }
     
-    private func fetchData() {
-        if let me = SessionManager.shared.currentUser {
-            currentUserId = me.id
+    func fetchPosts() {
+        Task {
+            await fetchPostsAsync()
         }
-        isLoading = false
     }
+
+    @MainActor
+    func fetchPostsAsync() async {
+        isLoading = true
+        do {
+            let response = try await APIClient.shared.get(endpoint: "/videos/friends", responseType: FeedResponse.self)
+            self.posts = response.videos
+            self.isLoading = false
+            self.errorMessage = nil
+            print("Successfully retrieved \(self.posts.count) posts from node backend")
+        } catch {
+            print("Failed to query posts - \(error)")
+            self.isLoading = false
+            self.errorMessage = error.localizedDescription
+        }
+    }
+
 }

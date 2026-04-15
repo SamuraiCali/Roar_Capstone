@@ -129,6 +129,7 @@ export const dbGetFeedVideos = async (feedData: {
   SELECT 
     v.*,
     u.username,
+    u.profile_image_key,
 
     COALESCE(lc.like_count, 0)::INT AS like_count,
     COALESCE(cc.comment_count, 0)::INT AS comment_count,
@@ -167,6 +168,92 @@ export const dbGetFeedVideos = async (feedData: {
     ON f.following_id = v.user_id 
     AND f.follower_id = $2
 
+
+  ORDER BY score DESC
+  LIMIT $1
+  `,
+        [limit, user_id],
+    );
+
+    return result.rows;
+};
+
+export const dbGetFriendsFeedVideos = async (feedData: {
+    user_id: number;
+    limit: number;
+}) => {
+    const { user_id, limit } = feedData;
+
+    const result = await pool.query(
+        `
+  WITH tag_scores AS (
+    SELECT 
+      vt.video_id,
+      COALESCE(SUM(utp.score), 0) AS tag_score
+    FROM video_tags vt
+    LEFT JOIN user_tag_preferences utp
+      ON utp.tag_id = vt.tag_id
+      AND utp.user_id = $2
+    GROUP BY vt.video_id
+  ),
+
+  like_counts AS (
+    SELECT 
+      video_id,
+      COUNT(*) AS like_count
+    FROM likes
+    GROUP BY video_id
+  ),
+
+  comment_counts AS (
+    SELECT 
+      video_id,
+      COUNT(*) AS comment_count
+    FROM comments
+    GROUP BY video_id
+  )
+
+  SELECT 
+    v.*,
+    u.username,
+    u.profile_image_key,
+
+    COALESCE(lc.like_count, 0)::INT AS like_count,
+    COALESCE(cc.comment_count, 0)::INT AS comment_count,
+
+    COALESCE(ts.tag_score, 0) * 10 AS tag_component,
+    COALESCE(lc.like_count, 0) * 2 AS like_component,
+    COALESCE(cc.comment_count, 0) AS comment_component,
+
+    EXISTS (
+      SELECT 1
+      FROM likes l2
+      WHERE l2.video_id = v.id
+        AND l2.user_id = $2
+    ) AS is_liked,
+
+    COALESCE(ts.tag_score, 0) AS tag_score,
+
+    (
+      COALESCE(ts.tag_score, 0) * 10 +
+      COALESCE(lc.like_count, 0) * 2 +
+      COALESCE(cc.comment_count, 0) * 1 +
+      (RANDOM() * 5) +
+      10 * EXP(-EXTRACT(EPOCH FROM (NOW() - v.created_at)) / 172800)
+    ) AS score
+
+  FROM videos v
+
+  JOIN users u 
+    ON v.user_id = u.id
+
+  JOIN followers f 
+    ON f.following_id = v.user_id 
+    AND f.follower_id = $2
+
+  LEFT JOIN tag_scores ts ON ts.video_id = v.id
+  LEFT JOIN like_counts lc ON lc.video_id = v.id
+  LEFT JOIN comment_counts cc ON cc.video_id = v.id
 
   ORDER BY score DESC
   LIMIT $1
@@ -355,6 +442,7 @@ export const dbGetProfileData = async (profileData: {userId: Number, username: s
     SELECT 
   u.id,
   u.username,
+  u.profile_image_key,
 
   (SELECT COUNT(*) 
    FROM followers 

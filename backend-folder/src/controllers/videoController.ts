@@ -3,6 +3,7 @@ import { pool } from "../config/db";
 import {
     dbCreateVideo,
     dbGetFeedVideos,
+    dbGetFriendsFeedVideos,
     dbGetVideoById,
 } from "../utils/dbUtils";
 import {
@@ -98,6 +99,42 @@ export const getFeedHandler = async (req: AuthRequest, res: Response) => {
         res.status(200).json({ videos: videos });
     } catch (err) {
         console.log("Error fetching feed: ", err);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
+export const getFriendsFeedHandler = async (req: AuthRequest, res: Response) => {
+    if (!req.user) {
+        return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const user_id = Number(req.user.id);
+
+    if (!user_id) {
+        return res.status(400).json({ error: "User ID Required" });
+    }
+
+    try {
+        const videosFromDb = await dbGetFriendsFeedVideos({
+            user_id: user_id,
+            limit: 5,
+        });
+
+        if (!videosFromDb.length) {
+            res.status(200).json({ videos: [] });
+            return;
+        }
+
+        const videos = await Promise.all(
+            videosFromDb.map(async (video) => {
+                const url = await getPresignedDownloadUrl(video.key);
+                return { ...video, url: url };
+            }),
+        );
+
+        res.status(200).json({ videos: videos });
+    } catch (err) {
+        console.log("Error fetching friends feed: ", err);
         res.status(500).json({ error: "Internal Server Error" });
     }
 };

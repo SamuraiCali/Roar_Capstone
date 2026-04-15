@@ -14,6 +14,7 @@ struct AuthorProfileView: View {
     @State private var followingCount = 0
     @State private var posts: [Post] = []
     @State private var isFollowing = false
+    @State private var profileImageUrl: String?
     
     @State private var isLoading = true
     
@@ -30,13 +31,43 @@ struct AuthorProfileView: View {
                     ProgressView()
                         .padding(.top, 50)
                 } else {
-                    // Profile Header
-                    Circle()
-                        .fill(Color.gray)
-                        .frame(width: 100, height: 100)
-                        .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                        .shadow(radius: 5)
-                        .padding(.top, 20)
+                    if let urlString = profileImageUrl, let url = URL(string: urlString + "?v=\(Date().timeIntervalSince1970)") {
+                        
+                        
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .empty:
+                                ProgressView()
+                                    .frame(width: 100, height: 100)
+
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 100, height: 100)
+                                    .clipShape(Circle())
+
+                            case .failure(_):
+                                Image(systemName: "person.crop.circle.fill")
+                                    .resizable()
+                                    .foregroundColor(.white)
+                                    .frame(width: 100, height: 100)
+                                    .clipShape(Circle())
+
+                            @unknown default:
+                                EmptyView()
+                            }
+                        }
+
+                    } else {
+                        Image(systemName: "person.crop.circle.fill")
+                            .resizable()
+                            .foregroundColor(.white)
+                            .frame(width: 100, height: 100)
+                            .clipShape(Circle())
+                        
+                        
+                    }
                     
                     Text("@\(username)")
                         .font(.title2)
@@ -138,6 +169,10 @@ struct AuthorProfileView: View {
                     self.followingCount = profileData.following_count
                     self.isFollowing = profileData.is_followed
                     self.posts = posts
+                    if let key = profileData.profile_image_key {
+                        print("Get Profile Data: \(key)")
+                        self.profileImageUrl = "\(S3_BASE_URL)/\(key)"
+                    }
                     
                     self.isLoading = false
                 }

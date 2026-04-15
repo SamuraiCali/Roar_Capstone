@@ -17,6 +17,7 @@ public struct Post: Codable, Identifiable, Equatable, Hashable {
     public var likeCount: Int?
     public let commentCount: Int?
     public var isLiked: Bool?
+    public let profileImageKey: String?
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -33,5 +34,6 @@ public struct Post: Codable, Identifiable, Equatable, Hashable {
         case likeCount = "like_count"
         case commentCount = "comment_count"
         case isLiked = "is_liked"
+        case profileImageKey = "profile_image_key"
     }
 }

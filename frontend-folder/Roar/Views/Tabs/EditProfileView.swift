@@ -33,7 +33,7 @@ struct EditProfileView: View {
                                 .frame(width: 90, height: 90)
                                 .clipShape(Circle())
                         } else if let user = currentUser, let urlString = currentUser?.profileImageUrl,
-                                  let url = URL(string: urlString) {
+                                  let url = URL(string: urlString + "?v=\(Date().timeIntervalSince1970)") {
                             let _ = user.profileImageUpdated
                             
 

@@ -3,6 +3,7 @@ import SwiftUI
 struct UserProfile: Codable {
     let id: Int
     let username: String
+    let profile_image_key: String?
     let follower_count: Int
     let following_count: Int
     let is_followed: Bool

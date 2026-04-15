@@ -74,7 +74,7 @@ struct CommentSheetView: View {
                         HStack(alignment: .top, spacing: 12) {
                             
                             if let key = comment.profileImageKey,
-                                       let url = URL(string: "\(S3_BASE_URL)/\(key)") {
+                               let url = URL(string: "\(S3_BASE_URL)/\(key)?v=\(Date().timeIntervalSince1970)") {
 
                                         AsyncImage(url: url) { phase in
                                             switch phase {
@@ -164,27 +164,46 @@ struct CommentSheetView: View {
                                 }
                                 
                                 if expandedComments.contains(comment.id) {
-                                    VStack(alignment: .leading, spacing: 8) {
+                                    VStack(alignment: .leading, spacing: 4) {//spacing 8
                                         ForEach(replies(for: comment.id)) { reply in
+                                            HStack(alignment: .top) {//spacing 4
+                                                if let key = reply.profileImageKey, let url = URL(string: "\(S3_BASE_URL)/\(key)?v=\(Date().timeIntervalSince1970)") {
+                                                    
+                                                    AvatarView(url: url)
+                                                } else {
+                                                    Circle()
+                                                        .fill(Color.gray)
+                                                        .frame(width: 40, height: 40)
+                                                        .overlay(Circle().stroke(Color.white, lineWidth: 1))
+                                                    
+                                                    Image(systemName: "person.circle.fill")
+                                                        .resizable()
+                                                        .foregroundColor(.white)
+                                                        .frame(width: 40, height: 40)
+                                                    
+                                                }
+
                                             VStack(alignment: .leading, spacing: 4) {
-                                                
-                                                Text(reply.username ?? "Unknown User")
-                                                    .font(.body)
-                                                    .foregroundColor(.gray)
-                                                    .padding(.leading, 12)
-                                                
-                                                HStack {
                                                     
-                                                    Text(reply.content)
+                                                
+                                                    
+                                                    
+                                                    Text(reply.username ?? "Unknown User")
                                                         .font(.body)
-                                                        .padding(.leading, 12)
+                                                        .foregroundColor(.gray)
                                                     
-                                                    Spacer()
-                                                    
-                                                    LikeButtonView(isLikedLocal: likedComments.contains(reply.id), isLikedServer: reply.isLiked, likeCount: reply.likeCount) {
-                                                        toggleLike(for: reply.id)
+                                                    HStack {
+                                                        
+                                                        Text(reply.content)
+                                                            .font(.body)
+                                                        
+                                                        Spacer()
+                                                        
+                                                        LikeButtonView(isLikedLocal: likedComments.contains(reply.id), isLikedServer: reply.isLiked, likeCount: reply.likeCount) {
+                                                            toggleLike(for: reply.id)
+                                                        }
+                                                        
                                                     }
-                                                    
                                                 }
                                             }
                                         }

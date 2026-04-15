@@ -19,7 +19,7 @@ import { dbGetProfileImageKeyForUser } from "./utils/dbUtils";
 
 const app = express();
 
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(cookieParser());
@@ -50,10 +50,14 @@ console.log(`BUCKET NAME: ${process.env.S3_BUCKET_NAME}`);
 
 const startServer = async () => {
   await testDatabaseConnection();
+  // 192.168.1.87
 
-  app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}!`);
-  });
-};
+  app.listen(Number(PORT), "0.0.0.0", () => {
+  console.log(`Server is running on http://localhost:${PORT}!`);
+});
+}
+
+
+
 
 startServer();

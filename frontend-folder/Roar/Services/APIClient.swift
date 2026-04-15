@@ -12,7 +12,9 @@ class APIClient {
     static let shared = APIClient()
     
     // Switch to your production domain or IP Address here
-    private let baseURL = "http://localhost:3000/api"
+//    private let baseURL = "http://localhost:3000/api"
+    private let baseURL = "http://192.168.1.87:3000/api"
+
     
     private init() {}
     
