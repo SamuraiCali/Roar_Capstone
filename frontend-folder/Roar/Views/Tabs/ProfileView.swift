@@ -44,16 +44,59 @@ struct ProfileView: View {
                         // Profile Header
                         ZStack {
                             Circle()
-                                .fill(Color.roarBlue)
-                                .frame(width: 100, height: 100)
-                                .overlay(Circle().stroke(Color.roarGold, lineWidth: 3))
-                                .shadow(radius: 5)
-                            
-                            Image(systemName: "person.crop.circle.fill")
-                                .resizable()
-                                .foregroundColor(.white)
-                                .frame(width: 100, height: 100)
-                                .clipShape(Circle())
+                                    .fill(Color.roarBlue)
+                                    .frame(width: 100, height: 100)
+                                    .overlay(Circle().stroke(Color.roarGold, lineWidth: 3))
+                                    .shadow(radius: 5)
+
+                                if let urlString = currentUser?.profileImageUrl,
+                                   let url = URL(string: urlString), let user = currentUser {
+                                    
+                                    let _ = user.profileImageUpdated
+
+                                    AsyncImage(url: url) { phase in
+                                        switch phase {
+                                        case .empty:
+                                            ProgressView()
+                                                .frame(width: 100, height: 100)
+
+                                        case .success(let image):
+                                            image
+                                                .resizable()
+                                                .scaledToFill()
+                                                .frame(width: 100, height: 100)
+                                                .clipShape(Circle())
+
+                                        case .failure(_):
+                                            Image(systemName: "person.crop.circle.fill")
+                                                .resizable()
+                                                .foregroundColor(.white)
+                                                .frame(width: 100, height: 100)
+                                                .clipShape(Circle())
+
+                                        @unknown default:
+                                            EmptyView()
+                                        }
+                                    }
+
+                                } else {
+                                    Image(systemName: "person.crop.circle.fill")
+                                        .resizable()
+                                        .foregroundColor(.white)
+                                        .frame(width: 100, height: 100)
+                                        .clipShape(Circle())
+                                }
+//                            Circle()
+//                                .fill(Color.roarBlue)
+//                                .frame(width: 100, height: 100)
+//                                .overlay(Circle().stroke(Color.roarGold, lineWidth: 3))
+//                                .shadow(radius: 5)
+//                            
+//                            Image(systemName: "person.crop.circle.fill")
+//                                .resizable()
+//                                .foregroundColor(.white)
+//                                .frame(width: 100, height: 100)
+//                                .clipShape(Circle())
                         }
                         .padding(.top, 20)
                         

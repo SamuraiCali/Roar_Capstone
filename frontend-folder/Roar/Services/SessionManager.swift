@@ -9,6 +9,7 @@ struct ProtectedResponse: Decodable {
 struct User_: Decodable {
     let id: Int
     let username: String
+    let imageKey: String?
     let iat: Int
     let exp: Int
 }
@@ -23,6 +24,7 @@ class SessionManager: ObservableObject {
     
     private let userDefaultsKey = "auth_token"
     private let userKey = "current_user_id"
+    private let S3_URL = "https://s3-roar-165777654255-us-east-1-an.s3.us-east-1.amazonaws.com"
     
     init() {
         self.token = UserDefaults.standard.string(forKey: userDefaultsKey)
@@ -36,7 +38,14 @@ class SessionManager: ObservableObject {
                 responseType: ProtectedResponse.self
             )
             
-            self.currentUser = User(id: response.user.id, username: response.user.username, email: nil, createdAt: nil)
+            let imageKey = response.user.imageKey
+
+            let imageURL: String? = {
+                guard let imageKey = imageKey else { return nil }
+                return "\(S3_URL)/\(imageKey)"
+            }()
+            
+            self.currentUser = User(id: response.user.id, username: response.user.username, email: nil, profileImageUrl: imageURL, createdAt: nil)
         } catch {
             print("Failed to load user:", error)
         }

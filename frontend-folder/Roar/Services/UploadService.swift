@@ -63,6 +63,10 @@ class UploadService: ObservableObject {
             
             let _ = try await APIClient.shared.post(endpoint: "/videos", body: metaRequest, responseType: VideoMetadataResponse.self)
             
+            await MainActor.run {
+                self.isUploading = false
+            }
+            
         } catch {
             await MainActor.run {
                 self.uploadError = error.localizedDescription
@@ -70,9 +74,65 @@ class UploadService: ObservableObject {
             }
             throw error
         }
-        
+    }
+    
+    func uploadProfileImage(imageData: Data, fileName: String = "avatar.jpg") async throws -> String {
         await MainActor.run {
-            isUploading = false
+            isUploading = true
+            uploadProgress = 0
+            uploadError = nil
         }
+
+        do {
+            print("Getting presigned profile image upload URL")
+            let urlResponse = try await APIClient.shared.post(
+                endpoint: "/profile/avatar?fileName=\(fileName)&fileType=image/jpeg",
+                body: EmptyRequest(),
+                responseType: PresignedURLResponse.self
+            )
+
+            // 2. Upload directly to S3
+            print("Uploading to S3")
+            var uploadReq = URLRequest(url: URL(string: urlResponse.uploadUrl)!)
+            uploadReq.httpMethod = "PUT"
+            uploadReq.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
+
+            let (_, httpResponse) = try await URLSession.shared.upload(for: uploadReq, from: imageData)
+
+            if let httpResp = httpResponse as? HTTPURLResponse,
+               !(200...299).contains(httpResp.statusCode) {
+                throw NSError(domain: "UploadError", code: httpResp.statusCode)
+            }
+
+            await MainActor.run {
+                self.uploadProgress = 1.0
+            }
+            
+            print("saving key to db")
+            
+            try await saveProfileImageKeyToDB(key: urlResponse.key)
+            
+            await MainActor.run {
+                self.isUploading = false
+            }
+
+            return urlResponse.key
+            
+
+        } catch {
+            await MainActor.run {
+                self.uploadError = error.localizedDescription
+                self.isUploading = false
+            }
+            throw error
+        }
+    }
+    
+    private func saveProfileImageKeyToDB(key: String) async throws {
+        _ = try await APIClient.shared.post(
+            endpoint: "/profile/avatar/save?key=\(key)",
+            body: EmptyRequest(),
+            responseType: EmptyResponse.self
+        )
     }
 }

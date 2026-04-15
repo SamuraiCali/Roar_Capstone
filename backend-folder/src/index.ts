@@ -15,6 +15,7 @@ import profileRoutes from "./routes/profileRoutes"
 
 import { testDatabaseConnection } from "./config/db";
 import { auth, AuthRequest } from "./routes/authMiddleware";
+import { dbGetProfileImageKeyForUser } from "./utils/dbUtils";
 
 const app = express();
 
@@ -29,8 +30,10 @@ app.get("/api/example", (req: Request, res: Response) => {
   });
 });
 
-app.get("/api/protected", auth, (req: AuthRequest, res) => {
-  res.json({ message: "You are authenticated", user: req.user });
+app.get("/api/protected", auth, async (req: AuthRequest, res) => {
+  if(!req.user) return res.status(401).json({error: "Unauthenticated"})
+  const key = await dbGetProfileImageKeyForUser(Number(req.user.id))
+  res.json({ message: "You are authenticated", user: {imageKey: key, ...req.user} });
 });
 
 app.use("/api/videos", auth, videoRoutes);

@@ -409,3 +409,22 @@ export const dbDeleteCommentLike = async (likeData: {userId: number, commentId: 
     const query = "DELETE FROM comment_likes WHERE user_id = $1 AND comment_id = $2"
     await pool.query(query, [userId, commentId])
 }
+
+export const dbUpdateUserWithProfileImageKey = async (profileData: {userId: Number, key: string}) => {
+    const {userId, key} = profileData
+    const query = "UPDATE USERS SET profile_image_key = $1 WHERE id = $2"
+    await pool.query(query, [key, userId])
+}
+
+type DB_PFP = {
+    profile_image_key: string | null
+}
+export const dbGetProfileImageKeyForUser = async (userId: number) => {
+  try {
+    const result: QueryResult<DB_PFP> = await pool.query("SELECT profile_image_key FROM users WHERE id = $1", [userId])
+    return result.rowCount ? result.rows[0]?.profile_image_key : null
+
+  } catch(err) {
+    console.log(`Error getting user profile image key: ${err}`)
+  }
+}
