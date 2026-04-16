@@ -45,6 +45,17 @@ export const getCommentsAdmin = async (req: Request, res: Response) => {
     }
 };
 
+export const getCommentLikesAdmin = async (req: Request, res: Response) => {
+    try {
+        const result = await getTable("comment_likes");
+        res.status(200).json({ comment_likes: result.rows });
+    } catch (err) {
+        console.log("Error while fetching comment_likes table: ", err);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
+
 export const getFollowersAdmin = async (req: Request, res: Response) => {
     try {
         console.log("Attempting to fetch followers");

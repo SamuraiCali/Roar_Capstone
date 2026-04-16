@@ -1,25 +1,57 @@
 import SwiftUI
-@preconcurrency import Amplify
-@preconcurrency internal import AWSPluginsCore
 
-struct CommentUIModel: Identifiable {
-    let id: String
-    let content: String
-    let username: String
+struct GetCommentsResponse: Decodable {
+    let comments: [Comment]
 }
+
+struct PostCommentRequest: Encodable {
+    let content: String
+    let parent_comment_id: Int?
+}
+
+struct PostCommentResponse: Decodable {
+    let comment: Comment
+}
+
+public let S3_BASE_URL = "https://s3-roar-165777654255-us-east-1-an.s3.us-east-1.amazonaws.com"
+
 
 struct CommentSheetView: View {
     let post: Post
     @Binding var commentCount: Int
     
-    @State private var comments: [CommentUIModel] = []
+    @State private var comments: [Comment] = []
     @State private var newCommentText: String = ""
     @State private var isLoading = true
-    @State private var currentUserId: String?
+    @State private var expandedComments: Set<Int> = []
+    @State private var likedComments: Set<Int> = []
+
+    
+    @State private var replyingTo: Comment? = nil
+    @State private var replyText: String = ""
+    @FocusState private var isReplyFocused: Bool
+    
+    private var topLevelComments: [Comment] {
+        comments.filter { $0.parentCommentId == nil }
+    }
+
+    private var replyCounts: [Int: Int] {
+        var counts: [Int: Int] = [:]
+        
+        for comment in comments {
+            if let parentId = comment.parentCommentId {
+                counts[parentId, default: 0] += 1
+            }
+        }
+        
+        return counts
+    }
     
     var body: some View {
         NavigationView {
+            
             VStack {
+                
                 if isLoading {
                     Spacer()
                     ProgressView()
@@ -29,18 +61,141 @@ struct CommentSheetView: View {
                     Text("No comments yet. Be the first!")
                         .foregroundColor(.secondary)
                     Spacer()
+                } else if replyingTo != nil {
+                    ReplyComposerView(
+                        replyingTo: $replyingTo,
+                        text: $replyText,
+                        isFocused: $isReplyFocused,
+                        onSend: sendReply
+                    )
+                    .transition(.move(edge: .bottom))
                 } else {
-                    List(comments) { comment in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(comment.username)
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.gray)
+                    List(topLevelComments) { comment in
+                        HStack(alignment: .top, spacing: 12) {
                             
-                            Text(comment.content)
-                                .font(.body)
+                            if let key = comment.profileImageKey,
+//                               let url = URL(string: "\(S3_BASE_URL)/\(key)?v=\(Date().timeIntervalSince1970)") {
+                               //cache all users but the currently logged in user
+                               let url = URL(string: "\(S3_BASE_URL)/\(key)?v=\(comment.userId == SessionManager.shared.currentUser?.id ?? 0 ? Date().timeIntervalSince1970 : 1)") {
+
+                                
+                                AvatarView(url: url)
+
+                                    } else {
+                                        // Default avatar when nil
+                                        Image(systemName: "person.crop.circle.fill")
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 40, height: 40)
+                                            .foregroundColor(.gray)
+                                    }
+                            
+                            
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(comment.username ?? "Unknown User")
+                                    .font(.body)
+                                
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.gray)
+                                
+                                Text(comment.content)
+                                    .font(.body)
+                                
+                                HStack {
+                                    Button {
+                                        replyingTo = comment
+                                        replyText = ""
+                                        isReplyFocused = true
+                                    } label: {
+                                        Text("Reply")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .buttonStyle(.plain)
+                                    
+                                    Spacer()
+                                    
+                                    LikeButtonView(isLikedLocal: likedComments.contains(comment.id), isLikedServer: comment.isLiked, likeCount: comment.likeCount) {
+                                        toggleLike(for: comment.id)
+                                    }
+                                    
+                                }
+                                .padding(.top, 2)
+                                
+                                if let count = comment.replyCount, count > 0 {
+                                    Button(action: {
+                                        toggleReplies(for: comment.id)
+                                    }) {
+                                        HStack(spacing: 4) {
+                                            Text(expandedComments.contains(comment.id)
+                                                 ? "Hide replies"
+                                                 : "View \(count) replies")
+                                            
+                                            Image(systemName: expandedComments.contains(comment.id)
+                                                  ? "chevron.up"
+                                                  : "chevron.down")
+                                        }
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    }
+                                    .buttonStyle(.plain)
+                                    
+                                }
+                                
+                                if expandedComments.contains(comment.id) {
+                                    VStack(alignment: .leading, spacing: 4) {//spacing 8
+                                        ForEach(replies(for: comment.id)) { reply in
+                                            HStack(alignment: .top) {//spacing 4
+                                                if let key = reply.profileImageKey, let url = URL(string: "\(S3_BASE_URL)/\(key)?v=\(Date().timeIntervalSince1970)") {
+                                                    
+                                                    AvatarView(url: url)
+                                                } else {
+                                                    ZStack {
+                                                        Circle()
+                                                            .fill(Color.gray)
+                                                            .frame(width: 40, height: 40)
+                                                            .overlay(Circle().stroke(Color.white, lineWidth: 1))
+                                                        
+                                                        Image(systemName: "person.circle.fill")
+                                                            .resizable()
+                                                            .foregroundColor(.white)
+                                                            .frame(width: 40, height: 40)
+                                                    }
+                                                    
+                                                }
+
+                                            VStack(alignment: .leading, spacing: 4) {
+                                                    
+                                                
+                                                    
+                                                    
+                                                    Text(reply.username ?? "Unknown User")
+                                                        .font(.body)
+                                                        .foregroundColor(.gray)
+                                                    
+                                                    HStack {
+                                                        
+                                                        Text(reply.content)
+                                                            .font(.body)
+                                                        
+                                                        Spacer()
+                                                        
+                                                        LikeButtonView(isLikedLocal: likedComments.contains(reply.id), isLikedServer: reply.isLiked, likeCount: reply.likeCount) {
+                                                            toggleLike(for: reply.id)
+                                                        }
+                                                        
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    .padding(.top, 6)
+                                }
+                            }
+                            .padding(.vertical, 4)
+                            
                         }
-                        .padding(.vertical, 4)
                     }
                     .listStyle(PlainListStyle())
                 }
@@ -67,33 +222,101 @@ struct CommentSheetView: View {
         }
     }
     
+    private func toggleLike(for commentId: Int) {
+        Task {
+            if likedComments.contains(commentId) {
+                print("Attempting to unlike comment \(commentId)")
+                await unlikeComment(commentId: commentId)
+            } else {
+                print("Attempting to like comment \(commentId)")
+
+                await likeComment(commentId: commentId)
+            }
+        }
+    }
+    
+    private func likeComment(commentId: Int) async {
+        do {
+            let _ = try await APIClient.shared.post(endpoint: "/videos/comment/\(commentId)/like", body: EmptyRequest(), responseType: EmptyResponse.self)
+            likedComments.insert(commentId)
+        } catch {
+            likedComments.remove(commentId)
+            print("Error liking comment \(commentId)")
+        }
+        
+    }
+    
+    private func unlikeComment(commentId: Int) async {
+        do {
+            let _ = try await APIClient.shared.delete(endpoint: "/videos/comment/\(commentId)/like", body: EmptyRequest(), responseType: EmptyResponse.self)
+            likedComments.remove(commentId)
+        } catch {
+            likedComments.insert(commentId)
+            print("Error unliking comment \(commentId)")
+        }
+        
+    }
+    
+    private func replies(for commentId: Int) -> [Comment] {
+        comments
+            .filter { $0.parentCommentId == commentId }
+            .sorted { $0.createdAt < $1.createdAt }
+    }
+    
+    private func toggleReplies(for commentId: Int) {
+        if expandedComments.contains(commentId) {
+            expandedComments.remove(commentId)
+        } else {
+            expandedComments.insert(commentId)
+        }
+    }
+    
+    private func sendReply() async {
+        do {
+            guard let parent = replyingTo else { return }
+            let text = replyText.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !text.isEmpty else { return }
+            
+            let req = PostCommentRequest(content: text, parent_comment_id: parent.id)
+            let response = try await APIClient.shared.post(endpoint: "/videos/\(post.id)/comments", body: req, responseType: PostCommentResponse.self)
+            
+            var newComm = response.comment
+            if newComm.username == nil, let currentUsr = SessionManager.shared.currentUser {
+                newComm = Comment(id: newComm.id, userId: newComm.userId, videoId: newComm.videoId, content: newComm.content, parentCommentId: newComm.parentCommentId, likeCount: newComm.likeCount, isLiked: newComm.isLiked, profileImageKey: currentUsr.profileImageKey, createdAt: newComm.createdAt, username: currentUsr.username, replyCount: newComm.replyCount)
+            }
+            
+            replyingTo = nil
+            replyText = ""
+            isReplyFocused = false
+            
+            await MainActor.run {
+                print("New comment username: \(newComm.username ?? "NULL"), key: \(newComm.profileImageKey ?? "NULL")")
+
+                self.comments.insert(newComm, at: 0)
+                self.commentCount += 1
+            }
+            
+        } catch {
+            print("Error sending reply")
+        }
+    }
+    
     private func fetchComments() {
         Task {
             do {
-                let user = try await Amplify.Auth.getCurrentUser()
-                await MainActor.run { self.currentUserId = user.userId }
+                let response = try await APIClient.shared.get(endpoint: "/videos/\(post.id)/comments", responseType: GetCommentsResponse.self)
+                let fetchedComments = response.comments
                 
-                // Fetch comments for this post
-                let postPredicate = Comment.keys.post == post.id
-                let request = GraphQLRequest<Comment>.list(Comment.self, where: postPredicate)
-                let result = try await Amplify.API.query(request: request)
-                
-                switch result {
-                case .success(let fetchedComments):
-                    var mappedComments: [CommentUIModel] = []
+                await MainActor.run {
+                    self.comments = fetchedComments
+                    self.commentCount = self.comments.count
+                    self.isLoading = false
+                    
                     for comment in fetchedComments {
-                        let username = (try? await comment.user?.username) ?? "Unknown User"
-                        mappedComments.append(CommentUIModel(id: comment.id, content: comment.content, username: username))
+                        if comment.isLiked ?? false {
+                            likedComments.insert(comment.id)
+                        }
                     }
-                    let finalComments = mappedComments
-                    await MainActor.run {
-                        self.comments = finalComments
-                        self.commentCount = self.comments.count
-                        self.isLoading = false
-                    }
-                case .failure(let error):
-                    print("Failed to fetch comments: \(error)")
-                    await MainActor.run { self.isLoading = false }
                 }
             } catch {
                 print("Error getting user or comments: \(error)")
@@ -103,30 +326,27 @@ struct CommentSheetView: View {
     }
     
     private func postComment() {
-        guard let uid = currentUserId, !newCommentText.isEmpty else { return }
-        
+        if newCommentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return }
         let contentToPost = newCommentText
-        let dummyUser = User(id: uid, username: "")
-        let dummyPost = Post(id: post.id, description: "")
-        let newComment = Comment(content: contentToPost, user: dummyUser, post: dummyPost)
-        
-        // Optimistic UI update
-        // We assume current user's username is what they set in their profile,
-        // but since we only have their ID here easily, we'll placeholder it as "Me" until refresh,
-        // or we could fetch the user model. For real-time feel, "Me" works or fetch it in `fetchComments`.
-        let optimisticUI = CommentUIModel(id: UUID().uuidString, content: contentToPost, username: "Me")
-        comments.append(optimisticUI)
         newCommentText = ""
-        commentCount += 1
         
         Task {
             do {
-                let result = try await Amplify.API.mutate(request: .create(newComment))
-                switch result {
-                case .success(_):
-                    print("Comment created successfully")
-                case .failure(let error):
-                    print("GraphQL error creating comment: \(error)")
+                let req = PostCommentRequest(content: contentToPost, parent_comment_id: nil)
+                let response = try await APIClient.shared.post(endpoint: "/videos/\(post.id)/comments", body: req, responseType: PostCommentResponse.self)
+                
+                var newComm = response.comment
+                // If backend does not immediately return username with the created comment for the optimistic model
+                // We'll update it with what we have in SessionManager
+                
+                if newComm.username == nil, let currentUsr = SessionManager.shared.currentUser {
+                    newComm = Comment(id: newComm.id, userId: newComm.userId, videoId: newComm.videoId, content: newComm.content, parentCommentId: newComm.parentCommentId, likeCount: newComm.likeCount, isLiked: newComm.isLiked, profileImageKey: currentUsr.profileImageKey, createdAt: newComm.createdAt, username: currentUsr.username, replyCount: newComm.replyCount)
+                }
+                
+                await MainActor.run {
+                    print("New comment username: \(newComm.username ?? "NULL"), key: \(newComm.profileImageKey ?? "NULL")")
+                    self.comments.insert(newComm, at: 0)
+                    self.commentCount += 1
                 }
             } catch {
                 print("Error creating comment: \(error)")

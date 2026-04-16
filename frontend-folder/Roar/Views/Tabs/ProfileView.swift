@@ -1,10 +1,25 @@
 import SwiftUI
-@preconcurrency import Amplify
-internal import AWSPluginsCore
+
+struct UserProfile: Codable {
+    let id: Int
+    let username: String
+    let profile_image_key: String?
+    let follower_count: Int
+    let following_count: Int
+    let is_followed: Bool
+    let videos: [Video]
+}
+
+struct Video: Codable {
+    let video_id: Int
+    let title: String
+    let key: String
+    let description: String
+    let created_at: String
+}
 
 struct ProfileView: View {
     @State private var currentUser: User?
-    @State private var currentAuthUserId: String?
     @State private var userPosts: [Post] = []
     
     @State private var followersCount = 0
@@ -12,6 +27,22 @@ struct ProfileView: View {
     
     @State private var isLoading = true
     @State private var showingEditProfile = false
+    
+    @StateObject var session = SessionManager.shared
+    
+    var profileImageURL: String {
+        guard let key = currentUser?.profileImageKey else { return "" }
+
+        let url = "\(S3_BASE_URL)/\(key)?v=\(Date().timeIntervalSince1970)"
+
+//        if let currentUser = SessionManager.shared.currentUser,
+//           currentUser.username == post.username {
+//            url += "?v=\(currentUser.profileImageUpdated ?? 0)"
+//        }
+
+        return url
+    }
+    
     
     let columns = [
         GridItem(.flexible(), spacing: 2),
@@ -30,16 +61,23 @@ struct ProfileView: View {
                         // Profile Header
                         ZStack {
                             Circle()
-                                .fill(Color.roarBlue)
-                                .frame(width: 100, height: 100)
-                                .overlay(Circle().stroke(Color.roarGold, lineWidth: 3))
-                                .shadow(radius: 5)
-                            
-                            Image(systemName: "person.crop.circle.fill")
-                                .resizable()
-                                .foregroundColor(.white)
-                                .frame(width: 100, height: 100)
-                                .clipShape(Circle())
+                                    .fill(Color.roarBlue)
+                                    .frame(width: 100, height: 100)
+                                    .overlay(Circle().stroke(Color.roarGold, lineWidth: 3))
+                                    .shadow(radius: 5)
+                            if let user = session.currentUser, let url = URL(string: user.imageUrlWithVersion ?? "") {
+                                AvatarView(url: url, width: 100, height: 100)
+                                        .id(url.absoluteString)
+
+                                    
+                                } else {
+                                    Image(systemName: "person.crop.circle.fill")
+                                        .resizable()
+                                        .foregroundColor(.gray)
+                                        .frame(width: 100, height: 100)
+                                        .clipShape(Circle())
+
+                                }
                         }
                         .padding(.top, 20)
                         
@@ -48,19 +86,10 @@ struct ProfileView: View {
                             .fontWeight(.bold)
                             .foregroundColor(.primary)
                         
-                        if let bio = currentUser?.bio, !bio.isEmpty {
-                            Text(bio)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal)
-                        } else {
-                            Text("Welcome to Roar! Update your bio soon.")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                        Text("Welcome to Roar! Update your bio soon.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                         
-                        // Edit Profile Button (Placeholder MVP)
                         Button(action: {
                             showingEditProfile = true
                         }) {
@@ -91,7 +120,7 @@ struct ProfileView: View {
                                     .foregroundColor(.gray)
                             }
                             VStack {
-                                Text("\(userPosts.count)")
+                                Text("\(userPosts.count)") // Pending integration
                                     .font(.headline)
                                 Text("Posts")
                                     .font(.caption)
@@ -102,22 +131,21 @@ struct ProfileView: View {
                         
                         Divider()
                         
-                        // User's Posts Grid
-                        if userPosts.isEmpty {
-                            Text("You haven't posted any videos yet.")
-                                .foregroundColor(.gray)
-                                .padding(.top, 40)
-                        } else {
-                            LazyVGrid(columns: columns, spacing: 2) {
-                                ForEach(userPosts, id: \.id) { post in
-                                    NavigationLink(destination: ExploreFeedWrapper(posts: userPosts, initialPostID: post.id)) {
-                                        ExploreGridCell(post: post)
-                                    }
-                                    .contextMenu {
-                                        Button(role: .destructive) {
-                                            deletePost(postID: post.id)
-                                        } label: {
-                                            Label("Delete Post", systemImage: "trash")
+                        ScrollView {
+                            if isLoading {
+                                ProgressView()
+                                    .padding(.top, 50)
+                            } else {
+                                if userPosts.isEmpty {
+                                    Text("User has no posts.")
+                                        .foregroundColor(.gray)
+                                        .padding(.top, 50)
+                                } else {
+                                    LazyVGrid(columns: columns, spacing: 2) {
+                                        ForEach(userPosts) { post in
+                                            NavigationLink(destination: ExploreFeedWrapper(posts: userPosts, initialPostID: post.id)) {
+                                                ExploreGridCell(post: post)
+                                            }
                                         }
                                     }
                                 }
@@ -135,9 +163,12 @@ struct ProfileView: View {
             )
         }
         .sheet(isPresented: $showingEditProfile) {
-            EditProfileView(currentUser: $currentUser)
+//            EditProfileView(currentUser: $currentUser)
+            EditProfileView(currentUser: $session.currentUser)
+
         }
         .onAppear {
+            
             fetchData()
         }
     }
@@ -146,41 +177,20 @@ struct ProfileView: View {
         Task {
             isLoading = true
             do {
-                let authUser = try await Amplify.Auth.getCurrentUser()
-                let uid = authUser.userId
-                await MainActor.run { self.currentAuthUserId = uid }
-                
-                // Fetch User Model
-                let userRequest = GraphQLRequest<User>.get(User.self, byId: uid)
-                let userResult = try await Amplify.API.query(request: userRequest)
-                if case .success(let fetchedUser) = userResult {
-                    await MainActor.run { self.currentUser = fetchedUser }
+                if let me = SessionManager.shared.currentUser {
+                    await MainActor.run { self.currentUser = me }
+                    let profileData = try await APIClient.shared.get(endpoint: "/profile/\(me.username)", responseType: UserProfile.self)
+                    print("ProfileView: \(profileData.username), key = \(profileData.profile_image_key ?? "NULL")")
+                    let posts = try await APIClient.shared.get(endpoint: "/videos/user/\(me.id)", responseType: [Post].self)
+                    
+                    
+                    await MainActor.run {
+                        self.followersCount = profileData.follower_count
+                        self.followingCount = profileData.following_count
+                        self.currentUser?.profileImageKey = profileData.profile_image_key
+                        self.userPosts = posts
+                    }
                 }
-                
-                // Fetch Posts
-                let postPredicate = Post.keys.author == uid
-                let postRequest = GraphQLRequest<Post>.list(Post.self, where: postPredicate)
-                let postResult = try await Amplify.API.query(request: postRequest)
-                if case .success(let fetchedPosts) = postResult {
-                    await MainActor.run { self.userPosts = Array(fetchedPosts) }
-                }
-                
-                // Fetch Followers
-                let followersPredicate = Follow.keys.following == uid
-                let followersRequest = GraphQLRequest<Follow>.list(Follow.self, where: followersPredicate)
-                let followersResult = try await Amplify.API.query(request: followersRequest)
-                if case .success(let fetchedFollowers) = followersResult {
-                    await MainActor.run { self.followersCount = fetchedFollowers.count }
-                }
-                
-                // Fetch Following
-                let followingPredicate = Follow.keys.follower == uid
-                let followingRequest = GraphQLRequest<Follow>.list(Follow.self, where: followingPredicate)
-                let followingResult = try await Amplify.API.query(request: followingRequest)
-                if case .success(let fetchedFollowing) = followingResult {
-                    await MainActor.run { self.followingCount = fetchedFollowing.count }
-                }
-                
             } catch {
                 print("Failed to fetch profile: \(error)")
             }
@@ -189,28 +199,8 @@ struct ProfileView: View {
     }
     
     private func signOut() {
-        Task {
-            do {
-                _ = try await Amplify.Auth.signOut()
-            } catch {
-                print("Failed to sign out: \(error)")
-            }
-        }
+        SessionManager.shared.clearSession()
+        // Ensure App resets to AuthView by clearing userDefaults and dismissing
     }
-    
-    private func deletePost(postID: String) {
-        Task {
-            do {
-                let postToDelete = Post(id: postID, description: "") // Minimum required to delete
-                try await Amplify.API.mutate(request: .delete(postToDelete))
-                
-                // Optimistic UI update
-                await MainActor.run {
-                    self.userPosts.removeAll { $0.id == postID }
-                }
-            } catch {
-                print("Failed to delete post: \(error)")
-            }
-        }
-    }
+
 }

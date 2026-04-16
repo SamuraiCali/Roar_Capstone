@@ -3,14 +3,22 @@ import { Request, Response } from "express";
 import { pool } from "../config/db";
 import { hashPassword, verifyPassword } from "../utils/passwordUtils";
 import { DB_USER } from "../models/DatabaseTypes";
-import { dbCreateUser, dbGetUserByEmail } from "../utils/dbUtils";
+import { dbCreateUser, dbGetUserByEmail, dbCreateUserTagPreference } from "../utils/dbUtils";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "jwtsecret";
 
 // Register a new user
 export const register = async (req: Request, res: Response) => {
-    const { username, email, password } = req.body;
+
+    interface registerData {
+        username: string,
+        email: string,
+        password: string,
+        sports: string[]
+    }
+
+    const { username, email, password, sports }: registerData = req.body;
 
     if (!username || !email || !password) {
         return res.status(400).json({ error: "All fields are required" });
@@ -35,6 +43,17 @@ export const register = async (req: Request, res: Response) => {
             });
         }
 
+        if (sports.length) {
+            await Promise.all(
+                sports.map((sport) =>
+                    dbCreateUserTagPreference({
+                        userId: user.id,
+                        sport
+                    })
+                )
+            );
+        }
+
         const token = jwt.sign(
             { id: user.id, username: user.username },
             JWT_SECRET,
@@ -50,7 +69,7 @@ export const register = async (req: Request, res: Response) => {
             maxAge: 1000 * 60 * 60 * 24 * 7,
         })
             .status(201)
-            .json({ message: "User registered", user });
+            .json({ message: "User registered", user, token });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Server error" });
@@ -90,7 +109,7 @@ export const login = async (req: Request, res: Response) => {
             secure: false,
             sameSite: "lax",
             maxAge: 1000 * 60 * 60 * 24 * 7,
-        }).json({ message: "Login successful" });
+        }).json({ message: "Login successful", user, token });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Server error" });

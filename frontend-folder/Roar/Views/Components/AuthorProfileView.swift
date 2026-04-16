@@ -1,15 +1,20 @@
 import SwiftUI
-@preconcurrency import Amplify
-internal import AWSPluginsCore
+
+//struct FollowCountResponse: Decodable {
+//    let follower_count: Int
+//}
+
+struct EmptyRequest: Encodable {}
 
 struct AuthorProfileView: View {
-    let userID: String
-    
-    @State private var author: User?
-    @State private var authorPosts: [Post] = []
+    // Changed this to use username since that's what backend relies on
+    let username: String
     
     @State private var followersCount = 0
     @State private var followingCount = 0
+    @State private var posts: [Post] = []
+    @State private var isFollowing = false
+    @State private var profileImageUrl: String?
     
     @State private var isLoading = true
     
@@ -25,27 +30,46 @@ struct AuthorProfileView: View {
                 if isLoading {
                     ProgressView()
                         .padding(.top, 50)
-                } else if let author = author {
-                    // Profile Header
-                    Circle()
-                        .fill(Color.gray)
-                        .frame(width: 100, height: 100)
-                        .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                        .shadow(radius: 5)
-                        .padding(.top, 20)
+                } else {
+                    if let urlString = profileImageUrl, let url = URL(string: urlString + "?v=\(Date().timeIntervalSince1970)") {
+                        
+                        AvatarView(url: url, width: 100, height: 100)
+
+                    } else {
+                        Image(systemName: "person.crop.circle.fill")
+                            .resizable()
+                            .foregroundColor(.white)
+                            .frame(width: 100, height: 100)
+                            .clipShape(Circle())
+                        
+                        
+                    }
                     
-                    Text("@\(author.username)")
+                    Text("@\(username)")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.white)
                     
-                    if let bio = author.bio, !bio.isEmpty {
-                        Text(bio)
-                            .font(.subheadline)
-                            .foregroundColor(.white)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
+                    if let currentUser = SessionManager.shared.currentUser, currentUser.username != username {
+                        Button(action: {
+                            Task {
+                                if isFollowing {
+                                    unfollowUser()
+                                } else {
+                                    followUser()
+                                }
+                            }
+                        }) {
+                            Text(isFollowing ? "Following" : "Follow")
+                                .font(.headline)
+                                .foregroundColor(isFollowing ? .black : .white)
+                                .padding(.horizontal, 24)
+                                .padding(.vertical, 10)
+                                .background(isFollowing ? Color.roarGold : Color.roarBlue)
+                                .cornerRadius(10)
+                        }
                     }
+         
                     
                     // Stats
                     HStack(spacing: 40) {
@@ -66,7 +90,7 @@ struct AuthorProfileView: View {
                                 .foregroundColor(.gray)
                         }
                         VStack {
-                            Text("\(authorPosts.count)")
+                            Text("\(posts.count)") // Backend user posts route pending
                                 .font(.headline)
                                 .foregroundColor(.white)
                             Text("Posts")
@@ -77,29 +101,31 @@ struct AuthorProfileView: View {
                     
                     Divider().background(Color.gray)
                     
-                    // User's Posts Grid
-                    if authorPosts.isEmpty {
-                        Text("No posts yet.")
-                            .foregroundColor(.gray)
-                            .padding(.top, 40)
-                    } else {
-                        LazyVGrid(columns: columns, spacing: 2) {
-                            ForEach(authorPosts, id: \.id) { post in
-                                NavigationLink(destination: ExploreFeedWrapper(posts: authorPosts, initialPostID: post.id)) {
-                                    ExploreGridCell(post: post)
+                    ScrollView {
+                        if isLoading {
+                            ProgressView()
+                                .padding(.top, 50)
+                        } else {
+                            if posts.isEmpty {
+                                Text("User has no posts.")
+                                    .foregroundColor(.gray)
+                                    .padding(.top, 50)
+                            } else {
+                                LazyVGrid(columns: columns, spacing: 2) {
+                                    ForEach(posts) { post in
+                                        NavigationLink(destination: ExploreFeedWrapper(posts: posts, initialPostID: post.id)) {
+                                            ExploreGridCell(post: post)
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
-                } else {
-                    Text("User not found.")
-                        .foregroundColor(.gray)
-                        .padding(.top, 50)
                 }
             }
         }
         .background(Color.black.ignoresSafeArea())
-        .navigationTitle(author?.username ?? "Profile")
+        .navigationTitle(username)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             fetchData()
@@ -110,41 +136,60 @@ struct AuthorProfileView: View {
         Task {
             isLoading = true
             do {
-                // Fetch User
-                let userRequest = GraphQLRequest<User>.get(User.self, byId: userID)
-                let userResult = try await Amplify.API.query(request: userRequest)
-                if case .success(let fetchedUser) = userResult {
-                    await MainActor.run { self.author = fetchedUser }
-                }
                 
-                // Fetch Posts
-                let postPredicate = Post.keys.author == userID
-                let postRequest = GraphQLRequest<Post>.list(Post.self, where: postPredicate)
-                let postResult = try await Amplify.API.query(request: postRequest)
-                if case .success(let fetchedPosts) = postResult {
-                    await MainActor.run { self.authorPosts = Array(fetchedPosts) }
-                }
+                let profileData = try await APIClient.shared.get(endpoint: "/profile/\(username)", responseType: UserProfile.self)
+//                let posts = await APIClient.shared.fetchVideosDetails(videos: profileData.videos)
+                let posts = try await APIClient.shared.get(endpoint: "/videos/user/\(profileData.id)", responseType: [Post].self)
                 
-                // Fetch Followers
-                let followersPredicate = Follow.keys.following == userID
-                let followersRequest = GraphQLRequest<Follow>.list(Follow.self, where: followersPredicate)
-                let followersResult = try await Amplify.API.query(request: followersRequest)
-                if case .success(let fetchedFollowers) = followersResult {
-                    await MainActor.run { self.followersCount = fetchedFollowers.count }
+                await MainActor.run {
+                    self.followersCount = profileData.follower_count
+                    self.followingCount = profileData.following_count
+                    self.isFollowing = profileData.is_followed
+                    self.posts = posts
+                    if let key = profileData.profile_image_key {
+                        print("Get Profile Data: \(key)")
+                        self.profileImageUrl = "\(S3_BASE_URL)/\(key)"
+                    }
+                    
+                    self.isLoading = false
                 }
+            } catch {
+                print("Failed to fetch author profile stats: \(error)")
+                await MainActor.run { isLoading = false }
+            }
+        }
+    }
+    
+    private func followUser() {
+        Task {
+            do {
+                _ = try await APIClient.shared.post(endpoint: "/users/\(username)/follow", body: EmptyRequest(), responseType: EmptyResponse.self)
                 
-                // Fetch Following
-                let followingPredicate = Follow.keys.follower == userID
-                let followingRequest = GraphQLRequest<Follow>.list(Follow.self, where: followingPredicate)
-                let followingResult = try await Amplify.API.query(request: followingRequest)
-                if case .success(let fetchedFollowing) = followingResult {
-                    await MainActor.run { self.followingCount = fetchedFollowing.count }
+                await MainActor.run {
+                    isFollowing = true
+                    followersCount += 1
                 }
                 
             } catch {
-                print("Failed to fetch author profile: \(error)")
+                print("Failed to follow user \(username)")
             }
-            await MainActor.run { isLoading = false }
+        }
+    }
+    
+    private func unfollowUser() {
+        Task {
+            do {
+                _ = try await APIClient.shared.delete(endpoint: "/users/\(username)/follow", body: EmptyRequest(), responseType: EmptyResponse.self)
+                
+                await MainActor.run {
+                    isFollowing = false
+                    followersCount -= 1
+                }
+                
+            } catch {
+                print("Failed to unfollow user \(username)")
+            }
         }
     }
 }
+

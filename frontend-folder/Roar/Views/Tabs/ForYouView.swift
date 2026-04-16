@@ -1,6 +1,8 @@
 import SwiftUI
-@preconcurrency import Amplify
-internal import AWSPluginsCore
+
+struct FeedResponse: Decodable {
+    let videos: [Post]
+}
 
 struct ForYouView: View {
     @State private var posts: [Post] = []
@@ -61,18 +63,11 @@ struct ForYouView: View {
     func fetchPostsAsync() async {
         isLoading = true
         do {
-            let request = GraphQLRequest<Post>.list(Post.self)
-            let result = try await Amplify.API.query(request: request)
-            switch result {
-            case .success(let postsList):
-                print("Successfully retrieved \(postsList.count) posts")
-                self.posts = Array(postsList)
-                self.isLoading = false
-                self.errorMessage = nil
-            case .failure(let error):
-                print("Got failed result with \(error)")
-                self.isLoading = false
-            }
+            let response = try await APIClient.shared.get(endpoint: "/videos", responseType: FeedResponse.self)
+            self.posts = response.videos
+            self.isLoading = false
+            self.errorMessage = nil
+            print("Successfully retrieved \(self.posts.count) posts from node backend")
         } catch {
             print("Failed to query posts - \(error)")
             self.isLoading = false
