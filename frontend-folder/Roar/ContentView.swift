@@ -3,15 +3,16 @@ import SwiftUI
 struct ContentView: View {
     @State private var isSignedIn = false
     @State private var isCheckingSession = true
+    @StateObject private var session = SessionManager.shared
     
     var body: some View {
         ZStack {
             if isCheckingSession {
                 ProgressView("Checking Session...")
-            } else if isSignedIn {
+            } else if session.isSignedIn {
                 MainTabView()
             } else {
-                AuthView(isSignedIn: $isSignedIn)
+                AuthView()
             }
         }
         .onAppear {
@@ -22,12 +23,8 @@ struct ContentView: View {
     }
     
     func checkSession() async {
-        // A more robust checking mechanism would ping `/api/protected`
         if UserDefaults.standard.string(forKey: "auth_token") != nil {
             await SessionManager.shared.loadCurrentUser()
-            isSignedIn = SessionManager.shared.currentUser != nil
-        } else {
-            isSignedIn = false
         }
         isCheckingSession = false
     }
