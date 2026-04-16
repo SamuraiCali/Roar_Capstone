@@ -10,6 +10,7 @@ struct RegisterRequest: Encodable {
     let username: String
     let email: String
     let password: String
+    let sports: [String]
 }
 
 struct LoginRequest: Encodable {
@@ -25,6 +26,15 @@ struct AuthView: View {
     @State private var password = ""
     @State private var errorMessage = ""
     @State private var isLoading = false
+    @State private var selectedSports: Set<String> = []
+    
+    let sports = ["Football", "Basketball", "Soccer", "Baseball", "Volleyball", "Other"]
+    let columns = [
+        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible(), spacing: 12)
+    ]
+
     
     var body: some View {
         NavigationView {
@@ -59,6 +69,38 @@ struct AuthView: View {
                     .textContentType(isSignUp ? .newPassword : .password)
                     .padding(.horizontal)
                 
+                if isSignUp {
+                    
+                    Text("Select the sports you're interested in")
+                        .font(.headline)
+                        .padding(.horizontal)
+
+                    Text("This helps us personalize your experience.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal)
+                    
+                    LazyVGrid(columns: columns) {
+                        ForEach(sports, id: \.self) { sport in
+                            Text(sport)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(selectedSports.contains(sport.lowercased()) ? Color.roarGold : Color.gray.opacity(0.2))
+                                .foregroundColor(selectedSports.contains(sport.lowercased()) ? .white : .primary)
+                                .clipShape(Capsule())
+                                .onTapGesture {
+                                    if selectedSports.contains(sport.lowercased()) {
+                                        selectedSports.remove(sport.lowercased())
+                                    } else {
+                                        selectedSports.insert(sport.lowercased())
+                                    }
+                                    print("\(selectedSports)")
+                                }
+                        }
+                    }
+              
+                }
+                
                 Button(action: isSignUp ? signUp : signIn) {
                     if isLoading {
                         ProgressView()
@@ -91,7 +133,7 @@ struct AuthView: View {
         errorMessage = ""
         Task {
             do {
-                let req = RegisterRequest(username: username, email: email, password: password)
+                let req = RegisterRequest(username: username, email: email, password: password, sports: Array(selectedSports))
                 let response = try await APIClient.shared.post(endpoint: "/auth/register", body: req, responseType: AuthResponse.self)
                 await MainActor.run {
                     SessionManager.shared.saveSession(token: response.token, user: response.user)

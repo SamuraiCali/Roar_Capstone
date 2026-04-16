@@ -569,3 +569,23 @@ export const dbGetProfileImageKeyForUser = async (userId: number) => {
     console.log(`Error getting user profile image key: ${err}`)
   }
 }
+
+export const dbCreateUserTagPreference = async (tagData: {userId: number, sport: string}) => {
+    const {userId, sport} = tagData
+    const sportMap: Record<string, number> = {
+        basketball: 1,
+        volleyball: 2,
+        baseball: 3,
+        soccer: 4,
+        football: 5,
+        other: 6
+    };
+    if(!(sport in sportMap)) {
+        console.log(`sport ${sport} not in map`)
+        throw new Error(`Invalid sport: ${sport}`)
+
+    }
+    console.log(`Creating tag pref for ${sport}`)
+    const query = "INSERT INTO user_tag_preferences (user_id, tag_id, score) VALUES ($1, $2, $3)"
+    await pool.query(query, [userId, sportMap[sport], 10])
+}

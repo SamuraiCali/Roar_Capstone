@@ -3,14 +3,22 @@ import { Request, Response } from "express";
 import { pool } from "../config/db";
 import { hashPassword, verifyPassword } from "../utils/passwordUtils";
 import { DB_USER } from "../models/DatabaseTypes";
-import { dbCreateUser, dbGetUserByEmail } from "../utils/dbUtils";
+import { dbCreateUser, dbGetUserByEmail, dbCreateUserTagPreference } from "../utils/dbUtils";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "jwtsecret";
 
 // Register a new user
 export const register = async (req: Request, res: Response) => {
-    const { username, email, password } = req.body;
+
+    interface registerData {
+        username: string,
+        email: string,
+        password: string,
+        sports: string[]
+    }
+
+    const { username, email, password, sports }: registerData = req.body;
 
     if (!username || !email || !password) {
         return res.status(400).json({ error: "All fields are required" });
@@ -33,6 +41,17 @@ export const register = async (req: Request, res: Response) => {
             return res.status(500).json({
                 error: "Internal Server Error: Failed to create user",
             });
+        }
+
+        if (sports.length) {
+            await Promise.all(
+                sports.map((sport) =>
+                    dbCreateUserTagPreference({
+                        userId: user.id,
+                        sport
+                    })
+                )
+            );
         }
 
         const token = jwt.sign(
