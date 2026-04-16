@@ -32,35 +32,38 @@ struct EditProfileView: View {
                                 .scaledToFill()
                                 .frame(width: 90, height: 90)
                                 .clipShape(Circle())
-                        } else if let user = currentUser, let urlString = currentUser?.profileImageUrl,
-                                  let url = URL(string: urlString + "?v=\(Date().timeIntervalSince1970)") {
-                            let _ = user.profileImageUpdated
+                        } else
+//                        if let user = currentUser, let urlString = currentUser?.profileImageUrl,
+//                           let url = URL(string: urlString + "?v=\(Date().timeIntervalSince1970)") {
                             
+                        if let user = currentUser, let url = URL(string: user.imageUrlWithVersion ?? "") {
+                                
+                                    AvatarView(url: url, width: 100, height: 100)
 
-                                   AsyncImage(url: url) { phase in
-                                       switch phase {
-                                       case .empty:
-                                           ProgressView()
-                                               .frame(width: 100, height: 100)
-
-                                       case .success(let image):
-                                           image
-                                               .resizable()
-                                               .scaledToFill()
-                                               .frame(width: 100, height: 100)
-                                               .clipShape(Circle())
-
-                                       case .failure(_):
-                                           Image(systemName: "person.crop.circle.fill")
-                                               .resizable()
-                                               .foregroundColor(.white)
-                                               .frame(width: 100, height: 100)
-                                               .clipShape(Circle())
-
-                                       @unknown default:
-                                           EmptyView()
-                                       }
-                                   }
+//                                   AsyncImage(url: url) { phase in
+//                                       switch phase {
+//                                       case .empty:
+//                                           ProgressView()
+//                                               .frame(width: 100, height: 100)
+//
+//                                       case .success(let image):
+//                                           image
+//                                               .resizable()
+//                                               .scaledToFill()
+//                                               .frame(width: 100, height: 100)
+//                                               .clipShape(Circle())
+//
+//                                       case .failure(_):
+//                                           Image(systemName: "person.crop.circle.fill")
+//                                               .resizable()
+//                                               .foregroundColor(.white)
+//                                               .frame(width: 100, height: 100)
+//                                               .clipShape(Circle())
+//
+//                                       @unknown default:
+//                                           EmptyView()
+//                                       }
+//                                   }
 
                                } else {
                                    Circle()
@@ -168,19 +171,12 @@ extension EditProfileView {
                 if let user = currentUser, let imageKey = key {
 
                     var updatedUser = user
-                    updatedUser.profileImageUrl = "\(S3_BASE_URL)/\(imageKey)"
-                    updatedUser.profileImageUpdated = (updatedUser.profileImageUpdated ?? 1) + 1
 
                     await MainActor.run {
-                        currentUser = updatedUser
+//                        currentUser = updatedUser
                         SessionManager.shared.updateProfileImageKey(key)
                         print("SessionManagerUser version after .updateProfile(): \(SessionManager.shared.currentUser?.profileImageUpdated ?? 1)")
                         print(SessionManager.shared.currentUser?.profileImageKey ?? "Current user has no key")
-                        print("\(String(describing: updatedUser.imageUrlWithVersion))")
-
-//                        if let user = SessionManager.shared.currentUser {
-//                            SessionManager.shared.currentUser?.profileImageKey = key
-//                        }
 
                     }
 

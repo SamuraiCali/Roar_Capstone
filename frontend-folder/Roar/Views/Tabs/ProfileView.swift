@@ -163,7 +163,9 @@ struct ProfileView: View {
             )
         }
         .sheet(isPresented: $showingEditProfile) {
-            EditProfileView(currentUser: $currentUser)
+//            EditProfileView(currentUser: $currentUser)
+            EditProfileView(currentUser: $session.currentUser)
+
         }
         .onAppear {
             

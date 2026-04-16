@@ -70,6 +70,7 @@ class SessionManager: ObservableObject {
     func updateProfileImageKey(_ key: String?) {
         guard var user = currentUser, let imageKey = key else { return }
         user.profileImageKey = imageKey
+        user.profileImageUrl = "\(S3_URL)/\(imageKey)"
         //version query has a min of 1
         user.profileImageUpdated = (user.profileImageUpdated ?? 1) + 1
         print("Updated user profile image: version = \(String(describing: user.profileImageUpdated))")

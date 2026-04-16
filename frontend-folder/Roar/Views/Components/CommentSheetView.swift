@@ -74,34 +74,12 @@ struct CommentSheetView: View {
                         HStack(alignment: .top, spacing: 12) {
                             
                             if let key = comment.profileImageKey,
-                               let url = URL(string: "\(S3_BASE_URL)/\(key)?v=\(Date().timeIntervalSince1970)") {
+//                               let url = URL(string: "\(S3_BASE_URL)/\(key)?v=\(Date().timeIntervalSince1970)") {
+                               //cache all users but the currently logged in user
+                               let url = URL(string: "\(S3_BASE_URL)/\(key)?v=\(comment.userId == SessionManager.shared.currentUser?.id ?? 0 ? Date().timeIntervalSince1970 : 1)") {
+
                                 
                                 AvatarView(url: url)
-
-//                                        AsyncImage(url: url) { phase in
-//                                            switch phase {
-//                                            case .empty:
-//                                                ProgressView()
-//                                                    .frame(width: 40, height: 40)
-//
-//                                            case .success(let image):
-//                                                image
-//                                                    .resizable()
-//                                                    .scaledToFill()
-//                                                    .frame(width: 40, height: 40)
-//                                                    .clipShape(Circle())
-//
-//                                            case .failure:
-//                                                Image(systemName: "person.crop.circle.fill")
-//                                                    .resizable()
-//                                                    .scaledToFill()
-//                                                    .frame(width: 40, height: 40)
-//                                                    .foregroundColor(.gray)
-//
-//                                            @unknown default:
-//                                                EmptyView()
-//                                            }
-//                                        }
 
                                     } else {
                                         // Default avatar when nil
