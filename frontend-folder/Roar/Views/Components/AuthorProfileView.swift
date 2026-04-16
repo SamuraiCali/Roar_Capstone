@@ -33,31 +33,7 @@ struct AuthorProfileView: View {
                 } else {
                     if let urlString = profileImageUrl, let url = URL(string: urlString + "?v=\(Date().timeIntervalSince1970)") {
                         
-                        
-                        AsyncImage(url: url) { phase in
-                            switch phase {
-                            case .empty:
-                                ProgressView()
-                                    .frame(width: 100, height: 100)
-
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 100, height: 100)
-                                    .clipShape(Circle())
-
-                            case .failure(_):
-                                Image(systemName: "person.crop.circle.fill")
-                                    .resizable()
-                                    .foregroundColor(.white)
-                                    .frame(width: 100, height: 100)
-                                    .clipShape(Circle())
-
-                            @unknown default:
-                                EmptyView()
-                            }
-                        }
+                        AvatarView(url: url, width: 100, height: 100)
 
                     } else {
                         Image(systemName: "person.crop.circle.fill")
@@ -162,7 +138,8 @@ struct AuthorProfileView: View {
             do {
                 
                 let profileData = try await APIClient.shared.get(endpoint: "/profile/\(username)", responseType: UserProfile.self)
-                let posts = await APIClient.shared.fetchVideosDetails(videos: profileData.videos)
+//                let posts = await APIClient.shared.fetchVideosDetails(videos: profileData.videos)
+                let posts = try await APIClient.shared.get(endpoint: "/videos/user/\(profileData.id)", responseType: [Post].self)
                 
                 await MainActor.run {
                     self.followersCount = profileData.follower_count

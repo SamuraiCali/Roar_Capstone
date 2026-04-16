@@ -264,6 +264,58 @@ export const dbGetFriendsFeedVideos = async (feedData: {
     return result.rows;
 };
 
+export const dbGetUsersVideos = async (feedData: {
+    user_id: number;
+    limit: number;
+}) => {
+    const { user_id, limit } = feedData;
+
+    const result = await pool.query(
+        `
+        SELECT 
+        v.*,
+        u.username,
+        u.profile_image_key,
+
+        COALESCE(lc.like_count, 0)::INT AS like_count,
+        COALESCE(cc.comment_count, 0)::INT AS comment_count,
+
+        EXISTS (
+            SELECT 1
+            FROM likes l2
+            WHERE l2.video_id = v.id
+            AND l2.user_id = $2
+        ) AS is_liked
+
+        FROM videos v
+
+        JOIN users u 
+        ON v.user_id = u.id
+
+        LEFT JOIN (
+        SELECT video_id, COUNT(*) AS like_count
+        FROM likes
+        GROUP BY video_id
+        ) lc ON lc.video_id = v.id
+
+        LEFT JOIN (
+        SELECT video_id, COUNT(*) AS comment_count
+        FROM comments
+        GROUP BY video_id
+        ) cc ON cc.video_id = v.id
+
+        WHERE v.user_id = $2
+
+        ORDER BY v.created_at DESC
+        LIMIT $1;
+
+  `,
+        [limit, user_id],
+    );
+
+    return result.rows;
+};
+
 export const dbGetVideoById = async (id: number) => {
     const query = `
     SELECT 

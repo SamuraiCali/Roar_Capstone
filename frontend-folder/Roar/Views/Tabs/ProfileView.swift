@@ -28,6 +28,21 @@ struct ProfileView: View {
     @State private var isLoading = true
     @State private var showingEditProfile = false
     
+    @StateObject var session = SessionManager.shared
+    
+    var profileImageURL: String {
+        guard let key = currentUser?.profileImageKey else { return "" }
+
+        let url = "\(S3_BASE_URL)/\(key)?v=\(Date().timeIntervalSince1970)"
+
+//        if let currentUser = SessionManager.shared.currentUser,
+//           currentUser.username == post.username {
+//            url += "?v=\(currentUser.profileImageUpdated ?? 0)"
+//        }
+
+        return url
+    }
+    
     
     let columns = [
         GridItem(.flexible(), spacing: 2),
@@ -50,25 +65,21 @@ struct ProfileView: View {
                                     .frame(width: 100, height: 100)
                                     .overlay(Circle().stroke(Color.roarGold, lineWidth: 3))
                                     .shadow(radius: 5)
-
-//                                if let urlString = currentUser?.imageUrlWithVersion,
-//                                   let url = URL(string: urlString), let user = currentUser {
-                            if let user = currentUser, let key = user.profileImageKey, let url = URL(string: "\(S3_BASE_URL)/\(key)?v=\(Date().timeIntervalSince1970)") {
-                                
+                            if let user = session.currentUser, let url = URL(string: user.imageUrlWithVersion ?? "") {
                                 AvatarView(url: url, width: 100, height: 100)
+                                        .id(url.absoluteString)
+
                                     
                                 } else {
                                     Image(systemName: "person.crop.circle.fill")
                                         .resizable()
-                                        .foregroundColor(.pink)
+                                        .foregroundColor(.gray)
                                         .frame(width: 100, height: 100)
                                         .clipShape(Circle())
-                                    
-                                    
+
                                 }
                         }
                         .padding(.top, 20)
-                        .id(currentUser?.profileImageUpdated ?? 0)
                         
                         Text(currentUser?.username ?? "Me")
                             .font(.title2)
@@ -167,12 +178,14 @@ struct ProfileView: View {
                 if let me = SessionManager.shared.currentUser {
                     await MainActor.run { self.currentUser = me }
                     let profileData = try await APIClient.shared.get(endpoint: "/profile/\(me.username)", responseType: UserProfile.self)
-                    let posts = await APIClient.shared.fetchVideosDetails(videos: profileData.videos)
+                    print("ProfileView: \(profileData.username), key = \(profileData.profile_image_key ?? "NULL")")
+                    let posts = try await APIClient.shared.get(endpoint: "/videos/user/\(me.id)", responseType: [Post].self)
                     
                     
                     await MainActor.run {
                         self.followersCount = profileData.follower_count
                         self.followingCount = profileData.following_count
+                        self.currentUser?.profileImageKey = profileData.profile_image_key
                         self.userPosts = posts
                     }
                 }

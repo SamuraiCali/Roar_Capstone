@@ -75,31 +75,33 @@ struct CommentSheetView: View {
                             
                             if let key = comment.profileImageKey,
                                let url = URL(string: "\(S3_BASE_URL)/\(key)?v=\(Date().timeIntervalSince1970)") {
+                                
+                                AvatarView(url: url)
 
-                                        AsyncImage(url: url) { phase in
-                                            switch phase {
-                                            case .empty:
-                                                ProgressView()
-                                                    .frame(width: 40, height: 40)
-
-                                            case .success(let image):
-                                                image
-                                                    .resizable()
-                                                    .scaledToFill()
-                                                    .frame(width: 40, height: 40)
-                                                    .clipShape(Circle())
-
-                                            case .failure:
-                                                Image(systemName: "person.crop.circle.fill")
-                                                    .resizable()
-                                                    .scaledToFill()
-                                                    .frame(width: 40, height: 40)
-                                                    .foregroundColor(.gray)
-
-                                            @unknown default:
-                                                EmptyView()
-                                            }
-                                        }
+//                                        AsyncImage(url: url) { phase in
+//                                            switch phase {
+//                                            case .empty:
+//                                                ProgressView()
+//                                                    .frame(width: 40, height: 40)
+//
+//                                            case .success(let image):
+//                                                image
+//                                                    .resizable()
+//                                                    .scaledToFill()
+//                                                    .frame(width: 40, height: 40)
+//                                                    .clipShape(Circle())
+//
+//                                            case .failure:
+//                                                Image(systemName: "person.crop.circle.fill")
+//                                                    .resizable()
+//                                                    .scaledToFill()
+//                                                    .frame(width: 40, height: 40)
+//                                                    .foregroundColor(.gray)
+//
+//                                            @unknown default:
+//                                                EmptyView()
+//                                            }
+//                                        }
 
                                     } else {
                                         // Default avatar when nil
@@ -302,7 +304,7 @@ struct CommentSheetView: View {
             
             var newComm = response.comment
             if newComm.username == nil, let currentUsr = SessionManager.shared.currentUser {
-                newComm = Comment(id: newComm.id, userId: newComm.userId, videoId: newComm.videoId, content: newComm.content, parentCommentId: newComm.parentCommentId, likeCount: newComm.likeCount, isLiked: newComm.isLiked, profileImageKey: newComm.profileImageKey, createdAt: newComm.createdAt, username: currentUsr.username, replyCount: newComm.replyCount)
+                newComm = Comment(id: newComm.id, userId: newComm.userId, videoId: newComm.videoId, content: newComm.content, parentCommentId: newComm.parentCommentId, likeCount: newComm.likeCount, isLiked: newComm.isLiked, profileImageKey: currentUsr.profileImageKey, createdAt: newComm.createdAt, username: currentUsr.username, replyCount: newComm.replyCount)
             }
             
             replyingTo = nil
@@ -310,6 +312,8 @@ struct CommentSheetView: View {
             isReplyFocused = false
             
             await MainActor.run {
+                print("New comment username: \(newComm.username ?? "NULL"), key: \(newComm.profileImageKey ?? "NULL")")
+
                 self.comments.insert(newComm, at: 0)
                 self.commentCount += 1
             }
@@ -358,10 +362,11 @@ struct CommentSheetView: View {
                 // We'll update it with what we have in SessionManager
                 
                 if newComm.username == nil, let currentUsr = SessionManager.shared.currentUser {
-                    newComm = Comment(id: newComm.id, userId: newComm.userId, videoId: newComm.videoId, content: newComm.content, parentCommentId: newComm.parentCommentId, likeCount: newComm.likeCount, isLiked: newComm.isLiked, profileImageKey: newComm.profileImageKey, createdAt: newComm.createdAt, username: currentUsr.username, replyCount: newComm.replyCount)
+                    newComm = Comment(id: newComm.id, userId: newComm.userId, videoId: newComm.videoId, content: newComm.content, parentCommentId: newComm.parentCommentId, likeCount: newComm.likeCount, isLiked: newComm.isLiked, profileImageKey: currentUsr.profileImageKey, createdAt: newComm.createdAt, username: currentUsr.username, replyCount: newComm.replyCount)
                 }
                 
                 await MainActor.run {
+                    print("New comment username: \(newComm.username ?? "NULL"), key: \(newComm.profileImageKey ?? "NULL")")
                     self.comments.insert(newComm, at: 0)
                     self.commentCount += 1
                 }

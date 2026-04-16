@@ -24,6 +24,11 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(cookieParser());
 
+app.use((req, _, next) => {
+    console.log("➡️ HIT:", req.method, req.url);
+    next();
+});
+
 app.get("/api/example", (req: Request, res: Response) => {
   res.status(200).json({
     message: "GET request successful! ok",

@@ -14,9 +14,9 @@ final class ImageLoader: ObservableObject {
     
     private static let cache = NSCache<NSURL, UIImage>()
     
-//    init() {
-//        Self.cache.removeAllObjects()
-//    }
+    init() {
+        Self.cache.removeAllObjects()
+    }
     
     func load(from url: URL) {
         if let cached = Self.cache.object(forKey: url as NSURL) {

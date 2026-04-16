@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
-import { pool } from "../config/db";
 import {
     dbCreateVideo,
     dbGetFeedVideos,
     dbGetFriendsFeedVideos,
+    dbGetUsersVideos,
     dbGetVideoById,
 } from "../utils/dbUtils";
 import {
@@ -81,7 +81,7 @@ export const getFeedHandler = async (req: AuthRequest, res: Response) => {
     try {
         const videosFromDb = await dbGetFeedVideos({
             user_id: user_id,
-            limit: 5,
+            limit: 10,
         });
 
         if (!videosFromDb.length) {
@@ -133,6 +133,45 @@ export const getFriendsFeedHandler = async (req: AuthRequest, res: Response) => 
         );
 
         res.status(200).json({ videos: videos });
+    } catch (err) {
+        console.log("Error fetching friends feed: ", err);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
+export const getUsersVideosHandler = async (req: AuthRequest, res: Response) => {
+            console.log(`get users videos handler`)
+
+    if (!req.user) {
+        return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const user_id = req.params.userId
+
+    if (!user_id) return res.status(400).json({ error: "User ID Required" });
+    
+
+    try {
+        const videosFromDb = await dbGetUsersVideos({
+            user_id: Number(user_id),
+            limit: 20,
+        });
+
+        if (!videosFromDb.length) {
+            res.status(200).json([]);
+            return;
+        }
+
+        const videos = await Promise.all(
+            videosFromDb.map(async (video) => {
+                const url = await getPresignedDownloadUrl(video.key);
+                return { ...video, url: url };
+            }),
+        );
+
+        console.log(`videos: ${videos}`)
+
+        res.status(200).json(videos ?? []);
     } catch (err) {
         console.log("Error fetching friends feed: ", err);
         res.status(500).json({ error: "Internal Server Error" });

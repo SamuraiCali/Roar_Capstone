@@ -66,4 +66,13 @@ class SessionManager: ObservableObject {
         self.isSignedIn = false
         UserDefaults.standard.removeObject(forKey: userDefaultsKey)
     }
+    
+    func updateProfileImageKey(_ key: String?) {
+        guard var user = currentUser, let imageKey = key else { return }
+        user.profileImageKey = imageKey
+        //version query has a min of 1
+        user.profileImageUpdated = (user.profileImageUpdated ?? 1) + 1
+        print("Updated user profile image: version = \(String(describing: user.profileImageUpdated))")
+        currentUser = user
+    }
 }

@@ -23,8 +23,10 @@ public struct User: Codable, Identifiable, Equatable, Hashable {
 
 extension User {
     var imageUrlWithVersion: String? {
-        guard let baseUrl = profileImageUrl else { return nil }
+//        guard let baseUrl = profileImageUrl else { return nil }
+        guard let key = profileImageKey else { return nil }
+
         let version = profileImageUpdated ?? 0
-        return "\(baseUrl)?v=\(max(version, 1))"
+        return "\(S3_BASE_URL)/\(key)?v=\(max(version, 1))"
     }
 }

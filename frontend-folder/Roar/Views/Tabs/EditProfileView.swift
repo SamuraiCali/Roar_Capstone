@@ -169,11 +169,18 @@ extension EditProfileView {
 
                     var updatedUser = user
                     updatedUser.profileImageUrl = "\(S3_BASE_URL)/\(imageKey)"
-                    updatedUser.profileImageUpdated = (updatedUser.profileImageUpdated ?? 0) + 1
-                    print("\(String(describing: updatedUser.imageUrlWithVersion))")
+                    updatedUser.profileImageUpdated = (updatedUser.profileImageUpdated ?? 1) + 1
 
                     await MainActor.run {
                         currentUser = updatedUser
+                        SessionManager.shared.updateProfileImageKey(key)
+                        print("SessionManagerUser version after .updateProfile(): \(SessionManager.shared.currentUser?.profileImageUpdated ?? 1)")
+                        print(SessionManager.shared.currentUser?.profileImageKey ?? "Current user has no key")
+                        print("\(String(describing: updatedUser.imageUrlWithVersion))")
+
+//                        if let user = SessionManager.shared.currentUser {
+//                            SessionManager.shared.currentUser?.profileImageKey = key
+//                        }
 
                     }
 
