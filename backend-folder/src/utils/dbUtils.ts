@@ -265,10 +265,11 @@ export const dbGetFriendsFeedVideos = async (feedData: {
 };
 
 export const dbGetUsersVideos = async (feedData: {
-    user_id: number;
+    current_user_id: number;
+    target_user_id: number;
     limit: number;
 }) => {
-    const { user_id, limit } = feedData;
+    const { current_user_id, target_user_id, limit } = feedData;
 
     const result = await pool.query(
         `
@@ -284,7 +285,7 @@ export const dbGetUsersVideos = async (feedData: {
             SELECT 1
             FROM likes l2
             WHERE l2.video_id = v.id
-            AND l2.user_id = $2
+            AND l2.user_id = $3
         ) AS is_liked
 
         FROM videos v
@@ -310,7 +311,7 @@ export const dbGetUsersVideos = async (feedData: {
         LIMIT $1;
 
   `,
-        [limit, user_id],
+        [limit, target_user_id, current_user_id],
     );
 
     return result.rows;
@@ -533,9 +534,6 @@ WHERE u.username = $1
 GROUP BY u.id, u.username;`
 
     const result = await pool.query(query, [username, userId])
-    if(result.rowCount) {
-        console.log(result.rows[0])
-    }
     return result.rowCount ? result.rows[0] : null
 }
 
@@ -585,7 +583,7 @@ export const dbCreateUserTagPreference = async (tagData: {userId: number, sport:
         throw new Error(`Invalid sport: ${sport}`)
 
     }
-    console.log(`Creating tag pref for ${sport}`)
+    console.log(`Creating tag pref for ${sport}: ${sportMap[sport]}`)
     const query = "INSERT INTO user_tag_preferences (user_id, tag_id, score) VALUES ($1, $2, $3)"
     await pool.query(query, [userId, sportMap[sport], 10])
 }

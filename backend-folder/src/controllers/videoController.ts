@@ -140,20 +140,19 @@ export const getFriendsFeedHandler = async (req: AuthRequest, res: Response) => 
 };
 
 export const getUsersVideosHandler = async (req: AuthRequest, res: Response) => {
-            console.log(`get users videos handler`)
-
     if (!req.user) {
         return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const user_id = req.params.userId
+    const target_user_id = req.params.userId
 
-    if (!user_id) return res.status(400).json({ error: "User ID Required" });
+    if (!target_user_id) return res.status(400).json({ error: "Target User ID Required" });
     
 
     try {
         const videosFromDb = await dbGetUsersVideos({
-            user_id: Number(user_id),
+            current_user_id: Number(req.user.id),
+            target_user_id: Number(target_user_id),
             limit: 20,
         });
 
@@ -168,8 +167,6 @@ export const getUsersVideosHandler = async (req: AuthRequest, res: Response) => 
                 return { ...video, url: url };
             }),
         );
-
-        console.log(`videos: ${videos}`)
 
         res.status(200).json(videos ?? []);
     } catch (err) {

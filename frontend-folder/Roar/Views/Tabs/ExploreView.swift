@@ -81,9 +81,10 @@ struct ExploreView: View {
             .navigationTitle("Discover")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
-                if trendingPosts.isEmpty {
+//                if trendingPosts.isEmpty {
+                //not optimal, but we need to refresh when it fetches stale videos
                     fetchTrending()
-                }
+//                }
             }
         }
     }

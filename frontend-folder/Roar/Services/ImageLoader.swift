@@ -20,6 +20,7 @@ final class ImageLoader: ObservableObject {
     
     func load(from url: URL) {
         if let cached = Self.cache.object(forKey: url as NSURL) {
+            print("Returning cached image: \(url.absoluteString)")
             self.image = cached
             return
         }
@@ -29,6 +30,7 @@ final class ImageLoader: ObservableObject {
                 let (data, _) = try await URLSession.shared.data(from: url)
                 if let img = UIImage(data: data) {
                     await MainActor.run {
+                        print("Adding \(url.absoluteString) to cache")
                         Self.cache.setObject(img, forKey: url as NSURL)
                         self.image = img
                     }
