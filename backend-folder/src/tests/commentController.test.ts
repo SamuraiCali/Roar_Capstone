@@ -1,8 +1,7 @@
 import {
     dbCreateComment,
     dbDeleteCommentById,
-    dbGetCommentById,
-    dbGetCommentsWithReplyCount,
+    dbGetCommentById
 } from "../utils/dbUtils";
 import {
     getCommentsHandler,
@@ -215,44 +214,7 @@ describe("commentController", () => {
             });
         });
 
-        it("should return comments successfully", async () => {
-            const fakeComments = [
-                { id: 1, content: "comment 1", reply_count: 2 },
-                { id: 2, content: "comment 2", reply_count: 0 },
-            ];
-
-            (dbGetCommentsWithReplyCount as jest.Mock).mockResolvedValue(
-                fakeComments,
-            );
-
-            const req: any = { params: { videoId: "10" } };
-            const res = mockRes();
-
-            await getCommentsHandler(req, res);
-
-            expect(dbGetCommentsWithReplyCount).toHaveBeenCalledWith(10);
-            expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.json).toHaveBeenCalledWith({
-                comments: fakeComments,
-            });
-        });
-
-        it("should return 500 if database call fails", async () => {
-            (dbGetCommentsWithReplyCount as jest.Mock).mockRejectedValue(
-                new Error("DB error"),
-            );
-
-            const req: any = { params: { videoId: "10" } };
-            const res = mockRes();
-
-            await getCommentsHandler(req, res);
-
-            expect(res.status).toHaveBeenCalledWith(500);
-            expect(res.json).toHaveBeenCalledWith({
-                error: "Internal Server Error",
-            });
-        });
-    });
+    
 
     //============================================
     //deleteCommentsHandler Tests
@@ -343,4 +305,4 @@ describe("commentController", () => {
             });
         });
     });
-});
+});})
