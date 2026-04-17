@@ -9,7 +9,7 @@ public struct Comment: Codable, Identifiable, Equatable, Hashable {
     public var likeCount: Int?
     public var isLiked: Bool?
     public let profileImageKey: String?
-    public let createdAt: String
+    public let createdAt: Date
 
     
     // Additional properties we'll ensure the backend provides/maps

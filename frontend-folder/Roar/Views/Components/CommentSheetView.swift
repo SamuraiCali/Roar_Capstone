@@ -69,18 +69,14 @@ struct CommentSheetView: View {
 //                               let url = URL(string: "\(S3_BASE_URL)/\(key)?v=\(Date().timeIntervalSince1970)") {
                                //cache all users but the currently logged in user
                                let url = URL(string: "\(S3_BASE_URL)/\(key)?v=\(comment.userId == SessionManager.shared.currentUser?.id ?? 0 ? Date().timeIntervalSince1970 : 1)") {
-
-                                
-                                AvatarView(url: url)
-
-                                    } else {
-                                        // Default avatar when nil
+                                    AvatarView(url: url)
+                                } else {
                                         Image(systemName: "person.crop.circle.fill")
                                             .resizable()
                                             .scaledToFill()
                                             .frame(width: 40, height: 40)
                                             .foregroundColor(.gray)
-                                    }
+                                }
                             
                             
                             
@@ -95,16 +91,23 @@ struct CommentSheetView: View {
                                     .font(.body)
                                 
                                 HStack {
-                                    Button {
-                                        replyingTo = comment
-                                        replyText = ""
-                                        isReplyFocused = true
-                                    } label: {
-                                        Text("Reply")
+                                    
+                                    HStack {
+                                        Text("\(timeAgoString(from: comment.createdAt))")
                                             .font(.caption)
                                             .foregroundColor(.secondary)
+                                        
+                                        Button {
+                                            replyingTo = comment
+                                            replyText = ""
+                                            isReplyFocused = true
+                                        } label: {
+                                            Text("Reply")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                        .buttonStyle(.plain)
                                     }
-                                    .buttonStyle(.plain)
                                     
                                     Spacer()
                                     
@@ -153,10 +156,7 @@ struct CommentSheetView: View {
                                                 }
 
                                             VStack(alignment: .leading, spacing: 4) {
-                                                    
-                                                
-                                                    
-                                                    
+
                                                     Text(reply.username ?? "Unknown User")
                                                         .font(.body)
                                                         .foregroundColor(.gray)
@@ -173,6 +173,10 @@ struct CommentSheetView: View {
                                                         }
                                                         
                                                     }
+                                                    Text("\(timeAgoString(from: reply.createdAt))")
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                
                                                 }
                                             }
                                         }
@@ -382,5 +386,25 @@ struct CommentSheetView: View {
                 print("Error creating comment: \(error)")
             }
         }
+    }
+    private func timeAgoString(from date: Date) -> String {
+        let seconds = Int(Date().timeIntervalSince(date))
+        
+        if seconds < 60 {
+            return "\(seconds)s"
+        }
+        
+        let minutes = seconds / 60
+        if minutes < 60 {
+            return "\(minutes)m"
+        }
+        
+        let hours = minutes / 60
+        if hours < 24 {
+            return "\(hours)h"
+        }
+        
+        let days = hours / 24
+        return "\(days)d"
     }
 }
