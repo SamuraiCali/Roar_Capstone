@@ -20,6 +20,10 @@ struct VideoMetadataResponse: Decodable {
     let video: Post
 }
 
+struct BioRequest: Encodable {
+    let bio: String
+}
+
 class UploadService: ObservableObject {
     @Published var uploadProgress: Double = 0.0
     @Published var isUploading = false
@@ -127,6 +131,32 @@ class UploadService: ObservableObject {
                 self.isUploading = false
             }
             throw error
+        }
+    }
+    
+    func uploadBio(bio: String) async throws {
+        await MainActor.run {
+            isUploading = true
+            uploadProgress = 0.5
+            uploadError = nil
+        }
+        
+        do {
+            let _ = try await APIClient.shared.post(endpoint: "/profile/bio", body: BioRequest(bio: bio), responseType: EmptyResponse.self)
+            print("Bio saved: \(bio)")
+            await MainActor.run {
+                isUploading = false
+                uploadProgress = 1.0
+                uploadError = nil
+            }
+            
+        } catch {
+            await MainActor.run {
+                self.uploadError = error.localizedDescription
+                self.isUploading = false
+            }
+            throw error
+            
         }
     }
     

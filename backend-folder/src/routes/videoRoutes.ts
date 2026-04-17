@@ -5,7 +5,6 @@ import {
     getUsersVideosHandler,
     getVideoHandler,
     getVideoUploadUrlHandler,
-    postVideoHandler,
     uploadVideoHandler,
 } from "../controllers/videoController";
 

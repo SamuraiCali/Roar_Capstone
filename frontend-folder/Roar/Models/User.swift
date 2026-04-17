@@ -7,6 +7,7 @@ public struct User: Codable, Identifiable, Equatable, Hashable {
     //computed on login from SessionManager
     public var profileImageUrl: String?
     public var profileImageKey: String?
+    public var bio: String?
 
     public var profileImageUpdated: Int?
     public let createdAt: String?

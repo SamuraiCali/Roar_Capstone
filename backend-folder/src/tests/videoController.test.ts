@@ -6,7 +6,6 @@ import {
 } from "../utils/S3Utils";
 import {
     getVideoUploadUrlHandler,
-    postVideoHandler,
     getFeedHandler,
     getVideoHandler,
 } from "../controllers/videoController";
@@ -113,90 +112,90 @@ describe("videoController", () => {
     //postVideoHandler Tests
     //==================================================
     describe("postVideoHandler", () => {
-        it("should return 401 if user is not authenticated", async () => {
-            const req: any = {
-                user: null,
-                body: { key: "abc123", title: "Test Video" },
-            };
-            const res = mockRes();
+        // it("should return 401 if user is not authenticated", async () => {
+        //     const req: any = {
+        //         user: null,
+        //         body: { key: "abc123", title: "Test Video" },
+        //     };
+        //     const res = mockRes();
 
-            await postVideoHandler(req, res);
+        //     await postVideoHandler(req, res);
 
-            expect(res.status).toHaveBeenCalledWith(401);
-            expect(res.json).toHaveBeenCalledWith({ error: "Unauthorized" });
-        });
+        //     expect(res.status).toHaveBeenCalledWith(401);
+        //     expect(res.json).toHaveBeenCalledWith({ error: "Unauthorized" });
+        // });
 
-        it("should return 400 if key is missing", async () => {
-            const req: any = {
-                user: { id: "1" },
-                body: { title: "Test Video" },
-            };
-            const res = mockRes();
+        // it("should return 400 if key is missing", async () => {
+        //     const req: any = {
+        //         user: { id: "1" },
+        //         body: { title: "Test Video" },
+        //     };
+        //     const res = mockRes();
 
-            await postVideoHandler(req, res);
+        //     await postVideoHandler(req, res);
 
-            expect(res.status).toHaveBeenCalledWith(400);
-            expect(res.json).toHaveBeenCalledWith({
-                error: "key and user_id are required",
-            });
-        });
+        //     expect(res.status).toHaveBeenCalledWith(400);
+        //     expect(res.json).toHaveBeenCalledWith({
+        //         error: "key and user_id are required",
+        //     });
+        // });
 
-        it("should call dbCreateVideo and return 201 with saved video", async () => {
-            const fakeVideo = {
-                id: 1,
-                key: "abc123",
-                title: "Test Video",
-                user_id: 1,
-            };
-            (dbCreateVideo as jest.Mock).mockResolvedValue(fakeVideo);
+        // it("should call dbCreateVideo and return 201 with saved video", async () => {
+        //     const fakeVideo = {
+        //         id: 1,
+        //         key: "abc123",
+        //         title: "Test Video",
+        //         user_id: 1,
+        //     };
+        //     (dbCreateVideo as jest.Mock).mockResolvedValue(fakeVideo);
 
-            const req: any = {
-                user: { id: "1" },
-                body: {
-                    key: "abc123",
-                    title: "Test Video",
-                    description: "desc",
-                    duration_seconds: 120,
-                    width: 1920,
-                    height: 1080,
-                },
-            };
-            const res = mockRes();
+        //     const req: any = {
+        //         user: { id: "1" },
+        //         body: {
+        //             key: "abc123",
+        //             title: "Test Video",
+        //             description: "desc",
+        //             duration_seconds: 120,
+        //             width: 1920,
+        //             height: 1080,
+        //         },
+        //     };
+        //     const res = mockRes();
 
-            await postVideoHandler(req, res);
+        //     await postVideoHandler(req, res);
 
-            expect(dbCreateVideo).toHaveBeenCalledWith({
-                user_id: 1,
-                key: "abc123",
-                title: "Test Video",
-                description: "desc",
-                duration_seconds: 120,
-                width: 1920,
-                height: 1080,
-            });
+        //     expect(dbCreateVideo).toHaveBeenCalledWith({
+        //         user_id: 1,
+        //         key: "abc123",
+        //         title: "Test Video",
+        //         description: "desc",
+        //         duration_seconds: 120,
+        //         width: 1920,
+        //         height: 1080,
+        //     });
 
-            expect(res.status).toHaveBeenCalledWith(201);
-            expect(res.json).toHaveBeenCalledWith({ video: fakeVideo });
-        });
+        //     expect(res.status).toHaveBeenCalledWith(201);
+        //     expect(res.json).toHaveBeenCalledWith({ video: fakeVideo });
+        // });
 
-        it("should return 500 if dbCreateVideo throws an error", async () => {
-            (dbCreateVideo as jest.Mock).mockRejectedValue(
-                new Error("DB error"),
-            );
+        // it("should return 500 if dbCreateVideo throws an error", async () => {
+        //     (dbCreateVideo as jest.Mock).mockRejectedValue(
+        //         new Error("DB error"),
+        //     );
 
-            const req: any = {
-                user: { id: "1" },
-                body: { key: "abc123", title: "Test Video" },
-            };
-            const res = mockRes();
+        //     const req: any = {
+        //         user: { id: "1" },
+        //         body: { key: "abc123", title: "Test Video" },
+        //     };
+        //     const res = mockRes();
 
-            await postVideoHandler(req, res);
+        //     await postVideoHandler(req, res);
 
-            expect(res.status).toHaveBeenCalledWith(500);
-            expect(res.json).toHaveBeenCalledWith({
-                error: "Internal server error",
-            });
-        });
+        //     expect(res.status).toHaveBeenCalledWith(500);
+        //     expect(res.json).toHaveBeenCalledWith({
+        //         error: "Internal server error",
+        //     });
+        // });
     });
 
     //=====================================================

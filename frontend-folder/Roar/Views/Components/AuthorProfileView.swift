@@ -15,6 +15,7 @@ struct AuthorProfileView: View {
     @State private var posts: [Post] = []
     @State private var isFollowing = false
     @State private var profileImageUrl: String?
+    @State private var bio: String = ""
     
     @State private var isLoading = true
     
@@ -36,19 +37,37 @@ struct AuthorProfileView: View {
                         AvatarView(url: url, width: 100, height: 100)
 
                     } else {
-                        Image(systemName: "person.crop.circle.fill")
-                            .resizable()
-                            .foregroundColor(.white)
-                            .frame(width: 100, height: 100)
-                            .clipShape(Circle())
+//                        Image(systemName: "person.crop.circle.fill")
+//                            .resizable()
+//                            .foregroundColor(.white)
+//                            .frame(width: 100, height: 100)
+//                            .clipShape(Circle())
+                        ZStack {
+                            Circle()
+                                .fill(Color.roarBlue)
+                                .frame(width: 100, height: 100)
+                                .overlay(Circle().stroke(Color.roarGold, lineWidth: 3))
+                                .shadow(radius: 5)
+                           
+                            Image(systemName: "person.crop.circle.fill")
+                                .resizable()
+                                .foregroundColor(.gray)
+                                .frame(width: 100, height: 100)
+                                .clipShape(Circle())
+                            }
                         
-                        
+                    }
+                    
+                    if !bio.isEmpty {
+                        Text(bio)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
                     
                     Text("@\(username)")
                         .font(.title2)
                         .fontWeight(.bold)
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                     
                     if let currentUser = SessionManager.shared.currentUser, currentUser.username != username {
                         Button(action: {
@@ -76,7 +95,7 @@ struct AuthorProfileView: View {
                         VStack {
                             Text("\(followersCount)")
                                 .font(.headline)
-                                .foregroundColor(.white)
+//                                .foregroundColor(.white)
                             Text("Followers")
                                 .font(.caption)
                                 .foregroundColor(.gray)
@@ -84,7 +103,7 @@ struct AuthorProfileView: View {
                         VStack {
                             Text("\(followingCount)")
                                 .font(.headline)
-                                .foregroundColor(.white)
+//                                .foregroundColor(.white)
                             Text("Following")
                                 .font(.caption)
                                 .foregroundColor(.gray)
@@ -92,7 +111,7 @@ struct AuthorProfileView: View {
                         VStack {
                             Text("\(posts.count)") // Backend user posts route pending
                                 .font(.headline)
-                                .foregroundColor(.white)
+//                                .foregroundColor(.white)
                             Text("Posts")
                                 .font(.caption)
                                 .foregroundColor(.gray)
@@ -124,7 +143,7 @@ struct AuthorProfileView: View {
                 }
             }
         }
-        .background(Color.black.ignoresSafeArea())
+//        .background(Color.black.ignoresSafeArea())
         .navigationTitle(username)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
@@ -146,6 +165,7 @@ struct AuthorProfileView: View {
                     self.followingCount = profileData.following_count
                     self.isFollowing = profileData.is_followed
                     self.posts = posts
+                    self.bio = profileData.bio ?? ""
                     if let key = profileData.profile_image_key {
                         print("Get Profile Data: \(key)")
                         self.profileImageUrl = "\(S3_BASE_URL)/\(key)"

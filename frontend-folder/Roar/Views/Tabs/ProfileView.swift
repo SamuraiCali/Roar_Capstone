@@ -4,6 +4,7 @@ struct UserProfile: Codable {
     let id: Int
     let username: String
     let profile_image_key: String?
+    let bio: String?
     let follower_count: Int
     let following_count: Int
     let is_followed: Bool
@@ -61,15 +62,13 @@ struct ProfileView: View {
                         // Profile Header
                         ZStack {
                             Circle()
-                                    .fill(Color.roarBlue)
-                                    .frame(width: 100, height: 100)
-                                    .overlay(Circle().stroke(Color.roarGold, lineWidth: 3))
-                                    .shadow(radius: 5)
+                                .fill(Color.roarBlue)
+                                .frame(width: 100, height: 100)
+                                .overlay(Circle().stroke(Color.roarGold, lineWidth: 3))
+                                .shadow(radius: 5)
                             if let user = session.currentUser, let url = URL(string: user.imageUrlWithVersion ?? "") {
                                 AvatarView(url: url, width: 100, height: 100)
                                         .id(url.absoluteString)
-
-                                    
                                 } else {
                                     Image(systemName: "person.crop.circle.fill")
                                         .resizable()
@@ -86,7 +85,7 @@ struct ProfileView: View {
                             .fontWeight(.bold)
                             .foregroundColor(.primary)
                         
-                        Text("Welcome to Roar! Update your bio soon.")
+                        Text(session.currentUser?.bio ?? "Welcome to Roar! Update your bio soon.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
@@ -189,6 +188,10 @@ struct ProfileView: View {
                         self.followingCount = profileData.following_count
                         self.currentUser?.profileImageKey = profileData.profile_image_key
                         self.userPosts = posts
+//                        self.currentUser?.bio = profileData.bio
+                        session.currentUser?.bio = profileData.bio
+                        
+                        print("Obtained bio: \(profileData.bio ?? "NULL")")
                     }
                 }
             } catch {

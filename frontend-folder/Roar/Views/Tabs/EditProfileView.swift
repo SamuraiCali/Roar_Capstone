@@ -121,7 +121,7 @@ struct EditProfileView: View {
             .onAppear {
                 if let user = currentUser {
                     newUsername = user.username
-                    newBio = ""
+                    newBio = user.bio ?? ""
                 }
             }
 
@@ -162,18 +162,38 @@ extension EditProfileView {
         return nil
     }
     
+    struct BioRequest: Encodable {
+        let bio: String
+    }
+    
+    private func saveBio() async {
+        Task {
+            if newBio.isEmpty {
+                print("Failed to save bio. Bio Empty")
+                return
+            }
+            do {
+//                let _ = try await APIClient.shared.post(endpoint: "/profile/bio", body: BioRequest(bio: newBio), responseType: EmptyResponse.self)
+                let _ = try await uploadService.uploadBio(bio: newBio)
+                currentUser?.bio = newBio
+                
+            } catch {
+                print("Error while saving bio: \(newBio)")
+            }
+        }
+    }
+    
     private func saveProfile() {
         
         Task {
             do {
                 let key = await uploadProfileImage()
+                let _ = await saveBio()
                 
                 if let user = currentUser, let imageKey = key {
 
-                    var updatedUser = user
 
                     await MainActor.run {
-//                        currentUser = updatedUser
                         SessionManager.shared.updateProfileImageKey(key)
                         print("SessionManagerUser version after .updateProfile(): \(SessionManager.shared.currentUser?.profileImageUpdated ?? 1)")
                         print(SessionManager.shared.currentUser?.profileImageKey ?? "Current user has no key")

@@ -1,6 +1,6 @@
 import { Response } from "express";
 import { AuthRequest } from "../routes/authMiddleware";
-import { dbGetProfileData, dbUpdateUserWithProfileImageKey } from "../utils/dbUtils";
+import { dbGetProfileData, dbUpdateUserWithBio, dbUpdateUserWithProfileImageKey } from "../utils/dbUtils";
 import { getPresignedUploadUrlHelper } from "../utils/S3Utils";
 
 export const getProfileHandler = async (req: AuthRequest, res: Response) => {
@@ -89,6 +89,31 @@ export const saveProfileImageHandler = async (req: AuthRequest, res: Response) =
         if(!key) return res.status(400).json({error: "Missing Key"})
 
         await dbUpdateUserWithProfileImageKey({userId: Number(req.user.id), key: key as string})
+
+        res.status(200).json({});
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+export const saveBioHandler = async (req: AuthRequest, res: Response) => {
+    try {
+
+        if (!req.user) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
+
+        const {bio} = req.body
+
+        if(typeof(bio) !== "string") return res.status(400).json({error: "Bio must be of type string"})
+        
+        if(bio.length > 50) return res.status(400).json({error: "Bio exceeds character limit (50)"})
+
+        await dbUpdateUserWithBio({userId: Number(req.user.id), bio: bio})
+
+        console.log("Successfully updated user's bio.")
 
         res.status(200).json({});
     } catch (err) {

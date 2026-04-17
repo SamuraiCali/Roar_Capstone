@@ -627,6 +627,7 @@ export const dbGetProfileData = async (profileData: {userId: Number, username: s
   u.id,
   u.username,
   u.profile_image_key,
+  u.bio,
 
   (SELECT COUNT(*) 
    FROM followers 
@@ -686,6 +687,12 @@ export const dbUpdateUserWithProfileImageKey = async (profileData: {userId: Numb
     await pool.query(query, [key, userId])
 }
 
+export const dbUpdateUserWithBio = async (profileData: {userId: Number, bio: string}) => {
+    const {userId, bio} = profileData
+    const query = "UPDATE USERS SET bio = $1 WHERE id = $2"
+    await pool.query(query, [bio, userId])
+}
+
 type DB_PFP = {
     profile_image_key: string | null
 }
@@ -716,5 +723,5 @@ export const dbCreateUserTagPreference = async (tagData: {userId: number, sport:
     }
     console.log(`Creating tag pref for ${sport}: ${sportMap[sport]}`)
     const query = "INSERT INTO user_tag_preferences (user_id, tag_id, score) VALUES ($1, $2, $3)"
-    await pool.query(query, [userId, sportMap[sport], 10])
+    await pool.query(query, [userId, sportMap[sport], 3])
 }

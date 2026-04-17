@@ -81,7 +81,7 @@ export const uploadVideoHandler = async (req: AuthRequest, res: Response) => {
     // 2. Insert tags (if any) using UNNEST
     if (Array.isArray(sports) && sports.length > 0) {
         const tagIds = sports.map(sport => sportMap[sport])
-        console.log(`Converting ${sports} to ${tagIds}`)
+        console.log(`Converting ${sports} to tag id ${tagIds}`)
       await client.query(
         `INSERT INTO video_tags (video_id, tag_id)
          SELECT $1, UNNEST($2::int[])
@@ -109,32 +109,32 @@ export const uploadVideoHandler = async (req: AuthRequest, res: Response) => {
   }
 }
 
-export const postVideoHandler = async (req: AuthRequest, res: Response) => {
-    try {
-        const { key, title, description, sport, duration_seconds, width, height } =
-            req.body;
+// export const postVideoHandler = async (req: AuthRequest, res: Response) => {
+//     try {
+//         const { key, title, description, sport, duration_seconds, width, height } =
+//             req.body;
 
-        if (!req.user) {
-            return res.status(401).json({ error: "Unauthorized" });
-        }
+//         if (!req.user) {
+//             return res.status(401).json({ error: "Unauthorized" });
+//         }
 
-        const user_id = Number(req.user.id);
+//         const user_id = Number(req.user.id);
 
-        if (!key || !user_id) {
-            return res
-                .status(400)
-                .json({ error: "key and user_id are required" });
-        }
+//         if (!key || !user_id) {
+//             return res
+//                 .status(400)
+//                 .json({ error: "key and user_id are required" });
+//         }
 
-        const videoData = { user_id, ...req.body };
-        const savedVideo = await dbCreateVideo(videoData);
+//         const videoData = { user_id, ...req.body };
+//         const savedVideo = await dbCreateVideo(videoData);
 
-        res.status(201).json({ video: savedVideo });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Internal server error" });
-    }
-};
+//         res.status(201).json({ video: savedVideo });
+//     } catch (err) {
+//         console.error(err);
+//         res.status(500).json({ error: "Internal server error" });
+//     }
+// };
 
 export const getFeedHandler = async (req: AuthRequest, res: Response) => {
     if (!req.user) {
