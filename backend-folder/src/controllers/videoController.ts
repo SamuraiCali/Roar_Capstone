@@ -5,12 +5,15 @@ import {
     dbGetFriendsFeedVideos,
     dbGetUsersVideos,
     dbGetVideoById,
+    sportMap,
 } from "../utils/dbUtils";
 import {
     getPresignedDownloadUrl,
     getPresignedUploadUrlHelper,
 } from "../utils/S3Utils";
+import { pool } from "../config/db";
 import { AuthRequest } from "../routes/authMiddleware";
+import { UploadVideoRequest } from "../models/RequestTypes";
 
 export const getVideoUploadUrlHandler = async (req: Request, res: Response) => {
     try {
@@ -40,9 +43,75 @@ export const getVideoUploadUrlHandler = async (req: Request, res: Response) => {
     }
 };
 
+export const uploadVideoHandler = async (req: AuthRequest, res: Response) => {
+  const client = await pool.connect();
+
+  try {
+
+    const { key, description, sports}: UploadVideoRequest = req.body;
+
+    if (!req.user) {
+        return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const user_id = Number(req.user.id);
+
+    // Basic validation
+    if (!user_id || !key) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const hashtags = sports.map(sport => `#${sport}`).join(" ")
+    console.log(`hashtags: ${hashtags} from ${sports}`)
+
+    await client.query('BEGIN');
+
+    //yes hashtags is title
+    // 1. Insert video and get ID
+    const videoResult = await client.query(
+      `INSERT INTO videos (user_id, key, title, description)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [user_id, key, hashtags, description]
+    );
+    console.log(`UploadVideo: created video at id ${videoResult.rows[0].id}`)
+
+    const videoId = videoResult.rows[0].id;
+
+    // 2. Insert tags (if any) using UNNEST
+    if (Array.isArray(sports) && sports.length > 0) {
+        const tagIds = sports.map(sport => sportMap[sport])
+        console.log(`Converting ${sports} to ${tagIds}`)
+      await client.query(
+        `INSERT INTO video_tags (video_id, tag_id)
+         SELECT $1, UNNEST($2::int[])
+         ON CONFLICT DO NOTHING`,
+        [videoId, tagIds]
+      );
+    }
+
+    await client.query('COMMIT');
+
+    return res.status(201).json({
+      video: videoResult.rows[0],
+    });
+
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Upload video error:', err);
+
+    return res.status(500).json({
+      error: 'Failed to upload video',
+    });
+
+  } finally {
+    client.release();
+  }
+}
+
 export const postVideoHandler = async (req: AuthRequest, res: Response) => {
     try {
-        const { key, title, description, duration_seconds, width, height } =
+        const { key, title, description, sport, duration_seconds, width, height } =
             req.body;
 
         if (!req.user) {

@@ -37,10 +37,10 @@ CREATE TABLE videos (
 );
 
 INSERT INTO videos (user_id, key, title, description) VALUES 
-(1, 'videos/1774055669348-file_example_MP4_480_1_5MG.mp4', 'My Example Video', 'Mediatok Larp Tutorial'),
-(2, 'videos/1774159425783-basketball_dunk.mp4', 'Dunked on', 'Anybody can get it 🤦🏾‍♂️ W camera woman'),
-(2, 'videos/1774159834890-volleyball_rally.mp4', 'Volleyball Rally', 'POV: you’re right in the middle of the rally at FIU 🏐'),
-(2, 'videos/1776123407880-football-game.mp4', 'Football', 'It’s game day guys. Won 42-9, everyone was in flow state #fiufootball #collegelife #fiu #fyp #football');
+-- (1, 'videos/1774055669348-file_example_MP4_480_1_5MG.mp4', 'My Example Video', 'Mediatok Larp Tutorial'),
+(2, 'videos/1774159425783-basketball_dunk.mp4', '#basketball #dunk #swoosh', 'Anybody can get it 🤦🏾‍♂️ W camera woman'),
+(2, 'videos/1774159834890-volleyball_rally.mp4', '#volleyball #gym', 'POV: you’re right in the middle of the rally at FIU 🏐'),
+(2, 'videos/1776123407880-football-game.mp4', '#football #pantherpride #win', 'It’s game day guys. Won 42-9, everyone was in flow state #fiufootball #collegelife #fiu #fyp #football');
 
 CREATE INDEX idx_videos_created_at
 ON videos(created_at DESC);
@@ -79,9 +79,9 @@ CREATE TABLE IF NOT EXISTS comments (
 
 INSERT INTO comments (user_id, video_id, content, parent_comment_id)
 VALUES
-(1, 1, 'Earth spinning like a basketball #overthinkinghooper', NULL),
-(2, 1, 'Thats deep bro', 1),
-(3, 1, 'What is going on', 1);
+(1, 1, 'You were flying high like larry #overthinkinghooper', NULL),
+(2, 1, 'Genuinely, larry would be impressed', 1),
+(3, 1, 'Who is larry', 1);
 
 CREATE INDEX IF NOT EXISTS idx_comments_video_id ON comments(video_id);
 CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON comments(parent_comment_id);
@@ -138,8 +138,8 @@ INSERT INTO tags (name) VALUES
 ('volleyball'),
 ('baseball'),
 ('soccer'),
-('billiards'),
-('videogames');
+('football'),
+('other');
 
 CREATE TABLE IF NOT EXISTS video_tags (
     video_id INT REFERENCES videos(id) ON DELETE CASCADE,

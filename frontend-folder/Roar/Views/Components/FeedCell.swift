@@ -23,11 +23,6 @@ struct FeedCell: View {
 
         let url = "\(S3_BASE_URL)/\(key)?v=\(Date().timeIntervalSince1970)"
 
-//        if let currentUser = SessionManager.shared.currentUser,
-//           currentUser.username == post.username {
-//            url += "?v=\(currentUser.profileImageUpdated ?? 0)"
-//        }
-
         return url
     }
     
@@ -85,7 +80,7 @@ struct FeedCell: View {
                         // Tags currently simplified in the unified model
                         HStack {
                             if let title = post.title, !title.isEmpty {
-                                Text("#\(title)")
+                                Text("\(title)")
                             }
                         }
                         .font(.caption)

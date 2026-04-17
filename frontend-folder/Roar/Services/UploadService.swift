@@ -10,6 +10,7 @@ struct VideoMetadataRequest: Encodable {
     let key: String
     let title: String?
     let description: String?
+    let sports: [String]
     let duration_seconds: Int?
     let width: Int?
     let height: Int?
@@ -24,7 +25,7 @@ class UploadService: ObservableObject {
     @Published var isUploading = false
     @Published var uploadError: String?
     
-    func uploadVideo(fileURL: URL, team: String, sport: String, description: String) async throws {
+    func uploadVideo(fileURL: URL, sports: [String], description: String) async throws {
         await MainActor.run {
             isUploading = true
             uploadProgress = 0
@@ -54,8 +55,9 @@ class UploadService: ObservableObject {
             // 3. Post metadata
             let metaRequest = VideoMetadataRequest(
                 key: urlResponse.key,
-                title: team,
+                title: "",
                 description: description,
+                sports: sports,
                 duration_seconds: nil,
                 width: nil,
                 height: nil

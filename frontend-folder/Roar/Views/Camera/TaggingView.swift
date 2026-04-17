@@ -5,11 +5,18 @@ struct TaggingView: View {
     let videoURL: URL
     @StateObject private var uploadService = UploadService()
     
-    @State private var selectedSport = "Football"
-    @State private var videoTitle = ""
+    @State private var videoDescription = ""
+    @State private var selectedSports: Set<String> = []
+
     @Environment(\.presentationMode) var presentationMode
     
-    let sports = ["Football", "Basketball", "Soccer", "Baseball", "Volleyball"]
+    let sports = ["Football", "Basketball", "Soccer", "Baseball", "Volleyball", "Other"]
+    
+    let columns = [
+        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible(), spacing: 12)
+    ]
     
     var body: some View {
         ScrollView {
@@ -26,15 +33,27 @@ struct TaggingView: View {
                         .font(.title2)
                         .bold()
                     
-                    TextField("Video Title", text: $videoTitle)
+                    TextField("Video Description", text: $videoDescription)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                     
-                    Picker("Sport", selection: $selectedSport) {
+                    LazyVGrid(columns: columns) {
                         ForEach(sports, id: \.self) { sport in
-                            Text(sport).tag(sport)
+                            Text(sport)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(selectedSports.contains(sport.lowercased()) ? Color.roarGold : Color.gray.opacity(0.2))
+                                .foregroundColor(selectedSports.contains(sport.lowercased()) ? .white : .primary)
+                                .clipShape(Capsule())
+                                .onTapGesture {
+                                    if selectedSports.contains(sport.lowercased()) {
+                                        selectedSports.remove(sport.lowercased())
+                                    } else {
+                                        selectedSports.insert(sport.lowercased())
+                                    }
+                                    print("\(selectedSports)")
+                                }
                         }
                     }
-                    .pickerStyle(SegmentedPickerStyle())
                 }
                 .padding()
                 
@@ -56,7 +75,7 @@ struct TaggingView: View {
                             .cornerRadius(10)
                     }
                     .padding()
-                    .disabled(videoTitle.isEmpty)
+                    .disabled(videoDescription.isEmpty)
                 }
                 
                 if let error = uploadService.uploadError {
@@ -75,9 +94,8 @@ struct TaggingView: View {
             do {
                 try await uploadService.uploadVideo(
                     fileURL: videoURL,
-                    team: "", // Deprecated locally, pending backend schema removal
-                    sport: selectedSport,
-                    description: videoTitle
+                    sports: Array(selectedSports),
+                    description: videoDescription
                 )
                 // Dismiss on success
                 presentationMode.wrappedValue.dismiss()

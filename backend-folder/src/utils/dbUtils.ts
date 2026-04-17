@@ -9,6 +9,15 @@ import {
     DB_VIDEO,
 } from "../models/DatabaseTypes";
 
+export const sportMap: Record<string, number> = {
+    basketball: 1,
+    volleyball: 2,
+    baseball: 3,
+    soccer: 4,
+    football: 5,
+    other: 6
+};
+
 export const dbCreateUser = async (userData: {
     username: string;
     email: string;
@@ -57,8 +66,9 @@ export const dbDeleteLike = async (likeData: {
 interface videoData {
     user_id: number;
     key: string;
-    title: string | null;
+    title: string
     description: string | null;
+    sport: string
     duration_seconds: number | null;
     width: number | null;
     height: number | null;
@@ -67,8 +77,9 @@ export const dbCreateVideo = async (videoData: videoData) => {
     const {
         user_id,
         key,
-        title = null,
+        title,
         description = null,
+        sport,
         duration_seconds = null,
         width = null,
         height = null,
@@ -97,8 +108,128 @@ export const dbGetFeedVideos = async (feedData: {
 }) => {
     const { user_id, limit } = feedData;
 
-    const result = await pool.query(
-        `
+     const newQuery = `
+   WITH base AS (
+  SELECT 
+    v.*,
+    RANDOM() * 10 AS rand
+  FROM videos v
+),
+
+tag_scores AS (
+  SELECT 
+    vt.video_id,
+    COALESCE(AVG(utp.score), 0) AS tag_score
+  FROM video_tags vt
+  LEFT JOIN user_tag_preferences utp
+    ON utp.tag_id = vt.tag_id
+    AND utp.user_id = $2
+  GROUP BY vt.video_id
+),
+
+like_counts AS (
+  SELECT 
+    video_id,
+    COUNT(*) AS like_count
+  FROM likes
+  GROUP BY video_id
+),
+
+comment_counts AS (
+  SELECT 
+    video_id,
+    COUNT(*) AS comment_count
+  FROM comments
+  GROUP BY video_id
+)
+
+SELECT 
+  b.*,
+  u.username,
+  u.profile_image_key,
+
+  COALESCE(lc.like_count, 0)::INT AS like_count,
+  COALESCE(cc.comment_count, 0)::INT AS comment_count,
+
+  EXISTS (
+    SELECT 1
+    FROM likes l2
+    WHERE l2.video_id = b.id
+      AND l2.user_id = $2
+  ) AS is_liked,
+
+  -- 🔍 Raw tag score
+  COALESCE(ts.tag_score, 0)::FLOAT AS tag_score,
+
+  -- =========================
+  -- 🎯 COMPONENTS (DEBUG)
+  -- =========================
+
+  -- Tag relevance (capped)
+  LEAST(COALESCE(ts.tag_score, 0), 5) * 15 AS tag_component,
+
+  -- Engagement (log scaled)
+  LOG(1 + COALESCE(lc.like_count, 0)) * 20 AS like_component,
+  LOG(1 + COALESCE(cc.comment_count, 0)) * 10 AS comment_component,
+
+  -- Social
+  CASE 
+    WHEN f.follower_id IS NOT NULL THEN 30 
+    ELSE 0 
+  END AS follower_component,
+
+  -- Recency boost (early push)
+  120 * EXP(-EXTRACT(EPOCH FROM (NOW() - b.created_at)) / 86400) 
+    AS recency_component,
+
+  -- Random (shared)
+  b.rand AS random_component,
+
+  -- Global decay
+  EXP(-EXTRACT(EPOCH FROM (NOW() - b.created_at)) / 604800) 
+    AS decay_multiplier,
+
+  -- =========================
+  -- 🧠 FINAL SCORE
+  -- =========================
+
+  (
+    (
+      LEAST(COALESCE(ts.tag_score, 0), 5) * 15 +
+
+      LOG(1 + COALESCE(lc.like_count, 0)) * 20 +
+      LOG(1 + COALESCE(cc.comment_count, 0)) * 10 +
+
+      CASE 
+        WHEN f.follower_id IS NOT NULL THEN 30 
+        ELSE 0 
+      END +
+
+      120 * EXP(-EXTRACT(EPOCH FROM (NOW() - b.created_at)) / 86400) +
+
+      b.rand
+    )
+    *
+    EXP(-EXTRACT(EPOCH FROM (NOW() - b.created_at)) / 604800)
+  ) AS score
+
+FROM base b
+
+LEFT JOIN users u ON b.user_id = u.id
+LEFT JOIN tag_scores ts ON ts.video_id = b.id
+LEFT JOIN like_counts lc ON lc.video_id = b.id
+LEFT JOIN comment_counts cc ON cc.video_id = b.id
+
+LEFT JOIN followers f 
+  ON f.following_id = b.user_id 
+  AND f.follower_id = $2
+
+ORDER BY score DESC
+LIMIT $1;
+    `
+
+    const oldQuery = 
+    `
   WITH tag_scores AS (
     SELECT 
       vt.video_id,
@@ -153,7 +284,7 @@ export const dbGetFeedVideos = async (feedData: {
       COALESCE(cc.comment_count, 0) * 1 +
       CASE WHEN f.follower_id IS NOT NULL THEN 50 ELSE 0 END +
       (RANDOM() * 5) +
-      10 * EXP(-EXTRACT(EPOCH FROM (NOW() - v.created_at)) / 172800) -- new videos gain 10 score, over 2 days decay to 0
+      50 * EXP(-EXTRACT(EPOCH FROM (NOW() - v.created_at)) / 172800) -- new videos gain 10 score, over 2 days decay to 0
     ) AS score
 
   FROM videos v
@@ -171,9 +302,9 @@ export const dbGetFeedVideos = async (feedData: {
 
   ORDER BY score DESC
   LIMIT $1
-  `,
-        [limit, user_id],
-    );
+  `
+
+    const result = await pool.query(newQuery, [limit, user_id]);
 
     return result.rows;
 };
@@ -184,8 +315,7 @@ export const dbGetFriendsFeedVideos = async (feedData: {
 }) => {
     const { user_id, limit } = feedData;
 
-    const result = await pool.query(
-        `
+    const query =        `
   WITH tag_scores AS (
     SELECT 
       vt.video_id,
@@ -257,9 +387,10 @@ export const dbGetFriendsFeedVideos = async (feedData: {
 
   ORDER BY score DESC
   LIMIT $1
-  `,
-        [limit, user_id],
-    );
+  `
+
+    console.log("New query")
+    const result = await pool.query(query, [limit, user_id]);
 
     return result.rows;
 };
@@ -570,14 +701,14 @@ export const dbGetProfileImageKeyForUser = async (userId: number) => {
 
 export const dbCreateUserTagPreference = async (tagData: {userId: number, sport: string}) => {
     const {userId, sport} = tagData
-    const sportMap: Record<string, number> = {
-        basketball: 1,
-        volleyball: 2,
-        baseball: 3,
-        soccer: 4,
-        football: 5,
-        other: 6
-    };
+    // const sportMap: Record<string, number> = {
+    //     basketball: 1,
+    //     volleyball: 2,
+    //     baseball: 3,
+    //     soccer: 4,
+    //     football: 5,
+    //     other: 6
+    // };
     if(!(sport in sportMap)) {
         console.log(`sport ${sport} not in map`)
         throw new Error(`Invalid sport: ${sport}`)
