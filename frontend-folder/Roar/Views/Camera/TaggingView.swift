@@ -29,12 +29,16 @@ struct TaggingView: View {
                 
                 // Form
                 VStack(alignment: .leading, spacing: 15) {
-                    Text("Tag Your Roar")
+                    Text("Add a description")
                         .font(.title2)
                         .bold()
                     
                     TextField("Video Description", text: $videoDescription)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
+                    
+                    Text("Tag Your Roar")
+                        .font(.title2)
+                        .bold()
                     
                     LazyVGrid(columns: columns) {
                         ForEach(sports, id: \.self) { sport in

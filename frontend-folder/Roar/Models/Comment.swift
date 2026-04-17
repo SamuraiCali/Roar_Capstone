@@ -14,7 +14,7 @@ public struct Comment: Codable, Identifiable, Equatable, Hashable {
     
     // Additional properties we'll ensure the backend provides/maps
     public let username: String?
-    public let replyCount: Int?
+    public var replyCount: Int?
     
     enum CodingKeys: String, CodingKey {
         case id

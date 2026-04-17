@@ -25,7 +25,6 @@ struct CommentSheetView: View {
     @State private var isLoading = true
     @State private var expandedComments: Set<Int> = []
     @State private var likedComments: Set<Int> = []
-
     
     @State private var replyingTo: Comment? = nil
     @State private var replyText: String = ""
@@ -61,15 +60,8 @@ struct CommentSheetView: View {
                     Text("No comments yet. Be the first!")
                         .foregroundColor(.secondary)
                     Spacer()
-                } else if replyingTo != nil {
-                    ReplyComposerView(
-                        replyingTo: $replyingTo,
-                        text: $replyText,
-                        isFocused: $isReplyFocused,
-                        onSend: sendReply
-                    )
-                    .transition(.move(edge: .bottom))
-                } else {
+                }
+                else {
                     List(topLevelComments) { comment in
                         HStack(alignment: .top, spacing: 12) {
                             
@@ -151,17 +143,12 @@ struct CommentSheetView: View {
                                                     
                                                     AvatarView(url: url)
                                                 } else {
-                                                    ZStack {
-                                                        Circle()
-                                                            .fill(Color.gray)
-                                                            .frame(width: 40, height: 40)
-                                                            .overlay(Circle().stroke(Color.white, lineWidth: 1))
-                                                        
-                                                        Image(systemName: "person.circle.fill")
-                                                            .resizable()
-                                                            .foregroundColor(.white)
-                                                            .frame(width: 40, height: 40)
-                                                    }
+                                                    Image(systemName: "person.crop.circle.fill")
+                                                        .resizable()
+                                                        .scaledToFill()
+                                                        .frame(width: 40, height: 40)
+                                                        .foregroundColor(.gray)
+                                                
                                                     
                                                 }
 
@@ -198,19 +185,48 @@ struct CommentSheetView: View {
                         }
                     }
                     .listStyle(PlainListStyle())
+                    .id(comments.count)
                 }
                 
                 Divider()
                 
+                //was Hstack
                 HStack {
-                    TextField("Add a comment...", text: $newCommentText)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                    
-                    Button(action: postComment) {
-                        Image(systemName: "paperplane.fill")
-                            .foregroundColor(newCommentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .gray : .roarBlue)
+                    if let replyingComment = replyingTo {
+                        VStack {
+                            HStack {
+                                Spacer()
+                                
+                                Button("Cancel") {
+                                    replyingTo = nil
+                                    replyText = ""
+                                    isReplyFocused = false
+                                }
+                                .font(.caption)
+                                
+                            }
+                            HStack {
+                                TextField("Replying to user \(replyingComment.username ?? "")", text: $replyText)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .focused($isReplyFocused)
+                                
+                                Button(action: sendReply) {
+                                    Image(systemName: "paperplane.fill")
+                                        .foregroundColor(replyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .gray : .roarBlue)
+                                }
+                            }
+                        }
+                        
+                    } else {
+                        TextField("Add a comment...", text: $newCommentText)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                        
+                        Button(action: postComment) {
+                            Image(systemName: "paperplane.fill")
+                                .foregroundColor(newCommentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .gray : .roarBlue)
+                        }
+                        .disabled(newCommentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
-                    .disabled(newCommentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
                 .padding()
             }
@@ -271,33 +287,45 @@ struct CommentSheetView: View {
         }
     }
     
-    private func sendReply() async {
-        do {
-            guard let parent = replyingTo else { return }
-            let text = replyText.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !text.isEmpty else { return }
-            
-            let req = PostCommentRequest(content: text, parent_comment_id: parent.id)
-            let response = try await APIClient.shared.post(endpoint: "/videos/\(post.id)/comments", body: req, responseType: PostCommentResponse.self)
-            
-            var newComm = response.comment
-            if newComm.username == nil, let currentUsr = SessionManager.shared.currentUser {
-                newComm = Comment(id: newComm.id, userId: newComm.userId, videoId: newComm.videoId, content: newComm.content, parentCommentId: newComm.parentCommentId, likeCount: newComm.likeCount, isLiked: newComm.isLiked, profileImageKey: currentUsr.profileImageKey, createdAt: newComm.createdAt, username: currentUsr.username, replyCount: newComm.replyCount)
+    private func sendReply() {
+        Task {
+            do {
+                guard let parent = replyingTo else { return }
+                let text = replyText.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !text.isEmpty else { return }
+                
+                let req = PostCommentRequest(content: text, parent_comment_id: parent.id)
+                let response = try await APIClient.shared.post(endpoint: "/videos/\(post.id)/comments", body: req, responseType: PostCommentResponse.self)
+                
+                var newComm = response.comment
+                if newComm.username == nil, let currentUsr = SessionManager.shared.currentUser {
+                    newComm = Comment(id: newComm.id, userId: newComm.userId, videoId: newComm.videoId, content: newComm.content, parentCommentId: newComm.parentCommentId, likeCount: newComm.likeCount, isLiked: newComm.isLiked, profileImageKey: currentUsr.profileImageKey, createdAt: newComm.createdAt, username: currentUsr.username, replyCount: newComm.replyCount)
+                }
+                
+//                replyingTo = nil
+//                replyText = ""
+//                isReplyFocused = false
+                
+                await MainActor.run {
+                    replyingTo = nil
+                    replyText = ""
+                    isReplyFocused = false
+                    print("New reply username: \(newComm.username ?? "NULL"), key: \(newComm.profileImageKey ?? "NULL")")
+                    
+                    var newComments = self.comments
+                    newComments.insert(newComm, at: 0)
+                    self.comments = newComments
+                    self.commentCount += 1
+                    for (idx, comm) in comments.enumerated() {
+                        if comm.id == parent.id {
+                            comments[idx].replyCount = comments[idx].replyCount ?? 0 + 1
+                        }
+                    }
+                }
+                
+            } catch {
+                print("Error sending reply")
             }
-            
-            replyingTo = nil
-            replyText = ""
-            isReplyFocused = false
-            
-            await MainActor.run {
-                print("New comment username: \(newComm.username ?? "NULL"), key: \(newComm.profileImageKey ?? "NULL")")
-
-                self.comments.insert(newComm, at: 0)
-                self.commentCount += 1
-            }
-            
-        } catch {
-            print("Error sending reply")
         }
     }
     
@@ -345,7 +373,9 @@ struct CommentSheetView: View {
                 
                 await MainActor.run {
                     print("New comment username: \(newComm.username ?? "NULL"), key: \(newComm.profileImageKey ?? "NULL")")
-                    self.comments.insert(newComm, at: 0)
+                    var newComments = self.comments
+                    newComments.insert(newComm, at: 0)
+                    self.comments = newComments
                     self.commentCount += 1
                 }
             } catch {
