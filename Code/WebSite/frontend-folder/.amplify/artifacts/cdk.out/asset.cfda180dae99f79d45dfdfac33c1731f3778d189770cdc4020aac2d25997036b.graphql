@@ -1,0 +1,579 @@
+type User @aws_api_key @aws_iam @aws_cognito_user_pools {
+  username: String!
+  profilePicURL: String
+  bio: String
+  posts(filter: ModelPostFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelPostConnection
+  comments(filter: ModelCommentFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelCommentConnection
+  likesList(filter: ModelLikeFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelLikeConnection
+  followers(filter: ModelFollowFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelFollowConnection
+  following(filter: ModelFollowFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelFollowConnection
+  id: ID!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  owner: String
+}
+
+type Post @aws_api_key @aws_iam @aws_cognito_user_pools {
+  videoURL: String
+  teamTag: String
+  sportTag: String
+  timestamp: AWSDateTime
+  description: String!
+  likes: Int
+  authorId: ID
+  author: User
+  comments(filter: ModelCommentFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelCommentConnection
+  likesList(filter: ModelLikeFilterInput, sortDirection: ModelSortDirection, limit: Int, nextToken: String): ModelLikeConnection
+  id: ID!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  owner: String
+}
+
+type Like @aws_api_key @aws_iam @aws_cognito_user_pools {
+  userId: ID
+  postId: ID
+  user: User
+  post: Post
+  id: ID!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  owner: String
+}
+
+type Comment @aws_api_key @aws_iam @aws_cognito_user_pools {
+  content: String!
+  userId: ID
+  postId: ID
+  user: User
+  post: Post
+  id: ID!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  owner: String
+}
+
+type Follow @aws_api_key @aws_iam @aws_cognito_user_pools {
+  followerId: ID
+  followingId: ID
+  follower: User
+  following: User
+  id: ID!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  owner: String
+}
+
+input AmplifyAIConversationTurnErrorInput {
+  errorType: String!
+  message: String!
+}
+
+input ModelStringInput {
+  ne: String
+  eq: String
+  le: String
+  lt: String
+  ge: String
+  gt: String
+  contains: String
+  notContains: String
+  between: [String]
+  beginsWith: String
+  attributeExists: Boolean
+  attributeType: ModelAttributeTypes
+  size: ModelSizeInput
+}
+
+input ModelIntInput {
+  ne: Int
+  eq: Int
+  le: Int
+  lt: Int
+  ge: Int
+  gt: Int
+  between: [Int]
+  attributeExists: Boolean
+  attributeType: ModelAttributeTypes
+}
+
+input ModelFloatInput {
+  ne: Float
+  eq: Float
+  le: Float
+  lt: Float
+  ge: Float
+  gt: Float
+  between: [Float]
+  attributeExists: Boolean
+  attributeType: ModelAttributeTypes
+}
+
+input ModelBooleanInput {
+  ne: Boolean
+  eq: Boolean
+  attributeExists: Boolean
+  attributeType: ModelAttributeTypes
+}
+
+input ModelIDInput {
+  ne: ID
+  eq: ID
+  le: ID
+  lt: ID
+  ge: ID
+  gt: ID
+  contains: ID
+  notContains: ID
+  between: [ID]
+  beginsWith: ID
+  attributeExists: Boolean
+  attributeType: ModelAttributeTypes
+  size: ModelSizeInput
+}
+
+input ModelSubscriptionStringInput {
+  ne: String
+  eq: String
+  le: String
+  lt: String
+  ge: String
+  gt: String
+  contains: String
+  notContains: String
+  between: [String]
+  beginsWith: String
+  in: [String]
+  notIn: [String]
+}
+
+input ModelSubscriptionIntInput {
+  ne: Int
+  eq: Int
+  le: Int
+  lt: Int
+  ge: Int
+  gt: Int
+  between: [Int]
+  in: [Int]
+  notIn: [Int]
+}
+
+input ModelSubscriptionFloatInput {
+  ne: Float
+  eq: Float
+  le: Float
+  lt: Float
+  ge: Float
+  gt: Float
+  between: [Float]
+  in: [Float]
+  notIn: [Float]
+}
+
+input ModelSubscriptionBooleanInput {
+  ne: Boolean
+  eq: Boolean
+}
+
+input ModelSubscriptionIDInput {
+  ne: ID
+  eq: ID
+  le: ID
+  lt: ID
+  ge: ID
+  gt: ID
+  contains: ID
+  notContains: ID
+  between: [ID]
+  beginsWith: ID
+  in: [ID]
+  notIn: [ID]
+}
+
+enum ModelAttributeTypes {
+  binary
+  binarySet
+  bool
+  list
+  map
+  number
+  numberSet
+  string
+  stringSet
+  _null
+}
+
+input ModelSizeInput {
+  ne: Int
+  eq: Int
+  le: Int
+  lt: Int
+  ge: Int
+  gt: Int
+  between: [Int]
+}
+
+enum ModelSortDirection {
+  ASC
+  DESC
+}
+
+type ModelUserConnection @aws_api_key @aws_iam @aws_cognito_user_pools {
+  items: [User]!
+  nextToken: String
+}
+
+input ModelUserFilterInput {
+  username: ModelStringInput
+  profilePicURL: ModelStringInput
+  bio: ModelStringInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelUserFilterInput]
+  or: [ModelUserFilterInput]
+  not: ModelUserFilterInput
+  owner: ModelStringInput
+}
+
+type Query {
+  getUser(id: ID!): User @aws_api_key @aws_iam @aws_cognito_user_pools
+  listUsers(filter: ModelUserFilterInput, limit: Int, nextToken: String): ModelUserConnection @aws_api_key @aws_iam @aws_cognito_user_pools
+  getPost(id: ID!): Post @aws_api_key @aws_iam @aws_cognito_user_pools
+  listPosts(filter: ModelPostFilterInput, limit: Int, nextToken: String): ModelPostConnection @aws_api_key @aws_iam @aws_cognito_user_pools
+  getLike(id: ID!): Like @aws_api_key @aws_iam @aws_cognito_user_pools
+  listLikes(filter: ModelLikeFilterInput, limit: Int, nextToken: String): ModelLikeConnection @aws_api_key @aws_iam @aws_cognito_user_pools
+  getComment(id: ID!): Comment @aws_api_key @aws_iam @aws_cognito_user_pools
+  listComments(filter: ModelCommentFilterInput, limit: Int, nextToken: String): ModelCommentConnection @aws_api_key @aws_iam @aws_cognito_user_pools
+  getFollow(id: ID!): Follow @aws_api_key @aws_iam @aws_cognito_user_pools
+  listFollows(filter: ModelFollowFilterInput, limit: Int, nextToken: String): ModelFollowConnection @aws_api_key @aws_iam @aws_cognito_user_pools
+}
+
+input ModelUserConditionInput {
+  username: ModelStringInput
+  profilePicURL: ModelStringInput
+  bio: ModelStringInput
+  and: [ModelUserConditionInput]
+  or: [ModelUserConditionInput]
+  not: ModelUserConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  owner: ModelStringInput
+}
+
+input CreateUserInput {
+  username: String!
+  profilePicURL: String
+  bio: String
+  id: ID
+}
+
+input UpdateUserInput {
+  username: String
+  profilePicURL: String
+  bio: String
+  id: ID!
+}
+
+input DeleteUserInput {
+  id: ID!
+}
+
+type Mutation {
+  createUser(input: CreateUserInput!, condition: ModelUserConditionInput): User @aws_iam @aws_cognito_user_pools
+  updateUser(input: UpdateUserInput!, condition: ModelUserConditionInput): User @aws_iam @aws_cognito_user_pools
+  deleteUser(input: DeleteUserInput!, condition: ModelUserConditionInput): User @aws_iam @aws_cognito_user_pools
+  createPost(input: CreatePostInput!, condition: ModelPostConditionInput): Post @aws_iam @aws_cognito_user_pools
+  updatePost(input: UpdatePostInput!, condition: ModelPostConditionInput): Post @aws_iam @aws_cognito_user_pools
+  deletePost(input: DeletePostInput!, condition: ModelPostConditionInput): Post @aws_iam @aws_cognito_user_pools
+  createLike(input: CreateLikeInput!, condition: ModelLikeConditionInput): Like @aws_iam @aws_cognito_user_pools
+  updateLike(input: UpdateLikeInput!, condition: ModelLikeConditionInput): Like @aws_iam @aws_cognito_user_pools
+  deleteLike(input: DeleteLikeInput!, condition: ModelLikeConditionInput): Like @aws_iam @aws_cognito_user_pools
+  createComment(input: CreateCommentInput!, condition: ModelCommentConditionInput): Comment @aws_iam @aws_cognito_user_pools
+  updateComment(input: UpdateCommentInput!, condition: ModelCommentConditionInput): Comment @aws_iam @aws_cognito_user_pools
+  deleteComment(input: DeleteCommentInput!, condition: ModelCommentConditionInput): Comment @aws_iam @aws_cognito_user_pools
+  createFollow(input: CreateFollowInput!, condition: ModelFollowConditionInput): Follow @aws_iam @aws_cognito_user_pools
+  updateFollow(input: UpdateFollowInput!, condition: ModelFollowConditionInput): Follow @aws_iam @aws_cognito_user_pools
+  deleteFollow(input: DeleteFollowInput!, condition: ModelFollowConditionInput): Follow @aws_iam @aws_cognito_user_pools
+}
+
+input ModelSubscriptionUserFilterInput {
+  username: ModelSubscriptionStringInput
+  profilePicURL: ModelSubscriptionStringInput
+  bio: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionUserFilterInput]
+  or: [ModelSubscriptionUserFilterInput]
+  owner: ModelStringInput
+}
+
+type Subscription {
+  onCreateUser(filter: ModelSubscriptionUserFilterInput, owner: String): User @aws_subscribe(mutations: ["createUser"]) @aws_api_key @aws_iam @aws_cognito_user_pools
+  onUpdateUser(filter: ModelSubscriptionUserFilterInput, owner: String): User @aws_subscribe(mutations: ["updateUser"]) @aws_api_key @aws_iam @aws_cognito_user_pools
+  onDeleteUser(filter: ModelSubscriptionUserFilterInput, owner: String): User @aws_subscribe(mutations: ["deleteUser"]) @aws_api_key @aws_iam @aws_cognito_user_pools
+  onCreatePost(filter: ModelSubscriptionPostFilterInput, owner: String): Post @aws_subscribe(mutations: ["createPost"]) @aws_api_key @aws_iam @aws_cognito_user_pools
+  onUpdatePost(filter: ModelSubscriptionPostFilterInput, owner: String): Post @aws_subscribe(mutations: ["updatePost"]) @aws_api_key @aws_iam @aws_cognito_user_pools
+  onDeletePost(filter: ModelSubscriptionPostFilterInput, owner: String): Post @aws_subscribe(mutations: ["deletePost"]) @aws_api_key @aws_iam @aws_cognito_user_pools
+  onCreateLike(filter: ModelSubscriptionLikeFilterInput, owner: String): Like @aws_subscribe(mutations: ["createLike"]) @aws_api_key @aws_iam @aws_cognito_user_pools
+  onUpdateLike(filter: ModelSubscriptionLikeFilterInput, owner: String): Like @aws_subscribe(mutations: ["updateLike"]) @aws_api_key @aws_iam @aws_cognito_user_pools
+  onDeleteLike(filter: ModelSubscriptionLikeFilterInput, owner: String): Like @aws_subscribe(mutations: ["deleteLike"]) @aws_api_key @aws_iam @aws_cognito_user_pools
+  onCreateComment(filter: ModelSubscriptionCommentFilterInput, owner: String): Comment @aws_subscribe(mutations: ["createComment"]) @aws_api_key @aws_iam @aws_cognito_user_pools
+  onUpdateComment(filter: ModelSubscriptionCommentFilterInput, owner: String): Comment @aws_subscribe(mutations: ["updateComment"]) @aws_api_key @aws_iam @aws_cognito_user_pools
+  onDeleteComment(filter: ModelSubscriptionCommentFilterInput, owner: String): Comment @aws_subscribe(mutations: ["deleteComment"]) @aws_api_key @aws_iam @aws_cognito_user_pools
+  onCreateFollow(filter: ModelSubscriptionFollowFilterInput, owner: String): Follow @aws_subscribe(mutations: ["createFollow"]) @aws_api_key @aws_iam @aws_cognito_user_pools
+  onUpdateFollow(filter: ModelSubscriptionFollowFilterInput, owner: String): Follow @aws_subscribe(mutations: ["updateFollow"]) @aws_api_key @aws_iam @aws_cognito_user_pools
+  onDeleteFollow(filter: ModelSubscriptionFollowFilterInput, owner: String): Follow @aws_subscribe(mutations: ["deleteFollow"]) @aws_api_key @aws_iam @aws_cognito_user_pools
+}
+
+type ModelPostConnection @aws_api_key @aws_iam @aws_cognito_user_pools {
+  items: [Post]!
+  nextToken: String
+}
+
+input ModelPostFilterInput {
+  videoURL: ModelStringInput
+  teamTag: ModelStringInput
+  sportTag: ModelStringInput
+  timestamp: ModelStringInput
+  description: ModelStringInput
+  likes: ModelIntInput
+  authorId: ModelIDInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelPostFilterInput]
+  or: [ModelPostFilterInput]
+  not: ModelPostFilterInput
+  owner: ModelStringInput
+}
+
+input ModelPostConditionInput {
+  videoURL: ModelStringInput
+  teamTag: ModelStringInput
+  sportTag: ModelStringInput
+  timestamp: ModelStringInput
+  description: ModelStringInput
+  likes: ModelIntInput
+  authorId: ModelIDInput
+  and: [ModelPostConditionInput]
+  or: [ModelPostConditionInput]
+  not: ModelPostConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  owner: ModelStringInput
+}
+
+input CreatePostInput {
+  videoURL: String
+  teamTag: String
+  sportTag: String
+  timestamp: AWSDateTime
+  description: String!
+  likes: Int
+  authorId: ID
+  id: ID
+}
+
+input UpdatePostInput {
+  videoURL: String
+  teamTag: String
+  sportTag: String
+  timestamp: AWSDateTime
+  description: String
+  likes: Int
+  authorId: ID
+  id: ID!
+}
+
+input DeletePostInput {
+  id: ID!
+}
+
+input ModelSubscriptionPostFilterInput {
+  videoURL: ModelSubscriptionStringInput
+  teamTag: ModelSubscriptionStringInput
+  sportTag: ModelSubscriptionStringInput
+  timestamp: ModelSubscriptionStringInput
+  description: ModelSubscriptionStringInput
+  likes: ModelSubscriptionIntInput
+  authorId: ModelSubscriptionIDInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionPostFilterInput]
+  or: [ModelSubscriptionPostFilterInput]
+  owner: ModelStringInput
+}
+
+type ModelLikeConnection @aws_api_key @aws_iam @aws_cognito_user_pools {
+  items: [Like]!
+  nextToken: String
+}
+
+input ModelLikeFilterInput {
+  userId: ModelIDInput
+  postId: ModelIDInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelLikeFilterInput]
+  or: [ModelLikeFilterInput]
+  not: ModelLikeFilterInput
+  owner: ModelStringInput
+}
+
+input ModelLikeConditionInput {
+  userId: ModelIDInput
+  postId: ModelIDInput
+  and: [ModelLikeConditionInput]
+  or: [ModelLikeConditionInput]
+  not: ModelLikeConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  owner: ModelStringInput
+}
+
+input CreateLikeInput {
+  userId: ID
+  postId: ID
+  id: ID
+}
+
+input UpdateLikeInput {
+  userId: ID
+  postId: ID
+  id: ID!
+}
+
+input DeleteLikeInput {
+  id: ID!
+}
+
+input ModelSubscriptionLikeFilterInput {
+  userId: ModelSubscriptionIDInput
+  postId: ModelSubscriptionIDInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionLikeFilterInput]
+  or: [ModelSubscriptionLikeFilterInput]
+  owner: ModelStringInput
+}
+
+type ModelCommentConnection @aws_api_key @aws_iam @aws_cognito_user_pools {
+  items: [Comment]!
+  nextToken: String
+}
+
+input ModelCommentFilterInput {
+  content: ModelStringInput
+  userId: ModelIDInput
+  postId: ModelIDInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelCommentFilterInput]
+  or: [ModelCommentFilterInput]
+  not: ModelCommentFilterInput
+  owner: ModelStringInput
+}
+
+input ModelCommentConditionInput {
+  content: ModelStringInput
+  userId: ModelIDInput
+  postId: ModelIDInput
+  and: [ModelCommentConditionInput]
+  or: [ModelCommentConditionInput]
+  not: ModelCommentConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  owner: ModelStringInput
+}
+
+input CreateCommentInput {
+  content: String!
+  userId: ID
+  postId: ID
+  id: ID
+}
+
+input UpdateCommentInput {
+  content: String
+  userId: ID
+  postId: ID
+  id: ID!
+}
+
+input DeleteCommentInput {
+  id: ID!
+}
+
+input ModelSubscriptionCommentFilterInput {
+  content: ModelSubscriptionStringInput
+  userId: ModelSubscriptionIDInput
+  postId: ModelSubscriptionIDInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionCommentFilterInput]
+  or: [ModelSubscriptionCommentFilterInput]
+  owner: ModelStringInput
+}
+
+type ModelFollowConnection @aws_api_key @aws_iam @aws_cognito_user_pools {
+  items: [Follow]!
+  nextToken: String
+}
+
+input ModelFollowFilterInput {
+  followerId: ModelIDInput
+  followingId: ModelIDInput
+  id: ModelIDInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  and: [ModelFollowFilterInput]
+  or: [ModelFollowFilterInput]
+  not: ModelFollowFilterInput
+  owner: ModelStringInput
+}
+
+input ModelFollowConditionInput {
+  followerId: ModelIDInput
+  followingId: ModelIDInput
+  and: [ModelFollowConditionInput]
+  or: [ModelFollowConditionInput]
+  not: ModelFollowConditionInput
+  createdAt: ModelStringInput
+  updatedAt: ModelStringInput
+  owner: ModelStringInput
+}
+
+input CreateFollowInput {
+  followerId: ID
+  followingId: ID
+  id: ID
+}
+
+input UpdateFollowInput {
+  followerId: ID
+  followingId: ID
+  id: ID!
+}
+
+input DeleteFollowInput {
+  id: ID!
+}
+
+input ModelSubscriptionFollowFilterInput {
+  followerId: ModelSubscriptionIDInput
+  followingId: ModelSubscriptionIDInput
+  id: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionFollowFilterInput]
+  or: [ModelSubscriptionFollowFilterInput]
+  owner: ModelStringInput
+}
