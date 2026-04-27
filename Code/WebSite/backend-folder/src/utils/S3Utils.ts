@@ -1,5 +1,6 @@
 import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { s3Client } from "../config/s3";
+import { S3RequestPresignerOptions } from "@aws-sdk/s3-request-presigner";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export const getPresignedDownloadUrl = async (
@@ -15,17 +16,25 @@ export const getPresignedDownloadUrl = async (
   return url;
 };
 
+type PresignOptions = {
+    cacheControl?: string;
+};
+
 export const getPresignedUploadUrlHelper = async (
   key: string,
   fileType: string,
-  expiresIn: number = 60,
+  options?: PresignOptions
 ) => {
   const command = new PutObjectCommand({
     Bucket: process.env.S3_BUCKET_NAME!,
     Key: key,
     ContentType: fileType,
+
+    ...(options?.cacheControl && {
+          CacheControl: options.cacheControl,
+        })
   });
 
-  const url = await getSignedUrl(s3Client, command, { expiresIn: expiresIn });
+  const url = await getSignedUrl(s3Client, command, { expiresIn: 300 });
   return url;
 };

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { dbCreateLike, dbDeleteLike } from "../utils/dbUtils";
+import { dbCreateLike, dbDeleteLike, dbCreateCommentLike, dbDeleteCommentLike } from "../utils/dbUtils";
 import { AuthRequest } from "../routes/authMiddleware";
 
 export const likeVideo = async (req: AuthRequest, res: Response) => {
@@ -51,6 +51,55 @@ export const unlikeVideo = async (req: AuthRequest, res: Response) => {
     res.status(200).json({ message: "Video successfully unliked" });
   } catch (err) {
     console.log("Error while unliking video: ", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+export const likeCommentHandler = async (req: AuthRequest, res: Response) => {
+  console.log("Attempting to like comment")
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const user_id = Number(req.user.id);
+    const commentId = req.params.commentId;
+
+    if (!user_id || !commentId) {
+      res.status(400).json({ error: "user_id and commentId required" });
+      return;
+    }
+
+    await dbCreateCommentLike({
+      userId: user_id,
+      commentId: Number(commentId),
+    });
+    res.status(201).json({});
+  } catch (err) {
+    console.log("Error while liking comment: ", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+export const unlikeCommentHandler = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const user_id = Number(req.user.id);
+    const commentId = req.params.commentId;
+
+    if (!user_id || !commentId) {
+      res.status(400).json({ error: "user_id and commentId required" });
+      return;
+    }
+
+    await dbDeleteCommentLike({
+      userId: user_id,
+      commentId: Number(commentId),
+    });
+    res.status(200).json({});
+  } catch (err) {
+    console.log("Error while liking comment: ", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
