@@ -14,7 +14,7 @@ Before starting, ensure that the following are installed on your system:
 ## 2. Database Setup
 
 1. **Unzip the Database File**:
-   Extract `database_dump.zip` located in the `Code/Database` directory using the provided password.
+   Extract `database_dump.zip` located in the `Code/Database` directory using the provided password in the description of the InstallMaintenanceGuide YouTube video (URL can be found in Videos/index.html).
 
 2. **Place SQL Dump in Directory for Docker**
    Move the SQL Dump file "database_dump.sql" into Code/WebSite/backend-folder/src/config
@@ -50,7 +50,7 @@ Before starting, ensure that the following are installed on your system:
 3. **Configure Environment Variables**:
    In this directory is a password-protected folder called "env.zip", containing a file named
    ".env" containing all the necessary environment variables required to connect to the
-   postgresql server, AWS server, and other miscellaneous items.
+   postgresql server, AWS server, and other miscellaneous items. Its password can be found in the description of the InstallMaintenanceGuide YouTube video (URL in Videos/index.html).
    After obtaining access to the folder, ensure that ".env" is moved inside the "backend-folder" directory
 
 4. **Run the Server**:
@@ -64,10 +64,6 @@ Before starting, ensure that the following are installed on your system:
 <img width="1138" height="245" alt="dockercompose" src="https://github.com/user-attachments/assets/cc687021-eeb0-4349-9e08-bec6bd296899" />
 //
 <img width="1138" height="151" alt="dbready" src="https://github.com/user-attachments/assets/2b725e9e-c49e-4633-8969-da88128bb4f7" />
-
-   
-
-
 
 ## 4. Frontend Setup (iOS App)
 
@@ -86,4 +82,4 @@ Before starting, ensure that the following are installed on your system:
 4. **Build and Run**:
    Select an iOS Simulator or connected device in Xcode and press the `Run` (Play) button.
 
-   <img width="282" height="576" alt="fyp" src="https://github.com/user-attachments/assets/38439c2f-2211-40d8-abe0-ffcae822c547" />
+    <img width="282" height="576" alt="fyp" src="https://github.com/user-attachments/assets/38439c2f-2211-40d8-abe0-ffcae822c547" />
