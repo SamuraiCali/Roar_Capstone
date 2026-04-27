@@ -86,4 +86,4 @@ Before starting, ensure that the following are installed on your system:
 4. **Build and Run**:
    Select an iOS Simulator or connected device in Xcode and press the `Run` (Play) button.
 
-_(Insert Screenshot here of the iOS application running in the Simulator)_
+   <img width="282" height="576" alt="fyp" src="https://github.com/user-attachments/assets/38439c2f-2211-40d8-abe0-ffcae822c547" />
