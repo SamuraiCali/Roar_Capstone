@@ -1,24 +1,13 @@
 import SwiftUI
-@preconcurrency import Amplify
-internal import AWSPluginsCore
 
 struct ExploreView: View {
-    @State private var posts: [Post] = []
-    @State private var isLoading = false
-    @State private var selectedSport: String? = nil
+    @State private var searchText = ""
+    @State private var searchResults: [Post] = []
     
-    // Computed unique sports for the filter bar
-    var availableSports: [String] {
-        let allSports = posts.compactMap { $0.sportTag }.filter { !$0.isEmpty }
-        return Array(Set(allSports)).sorted()
-    }
+    // We can show some trending posts directly from backend feed
+    @State private var trendingPosts: [Post] = []
+    @State private var isLoading = true
     
-    var filteredPosts: [Post] {
-        guard let sport = selectedSport else { return posts }
-        return posts.filter { $0.sportTag == sport }
-    }
-    
-    // Grid layout
     let columns = [
         GridItem(.flexible(), spacing: 2),
         GridItem(.flexible(), spacing: 2),
@@ -28,113 +17,103 @@ struct ExploreView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Filter Bar
-                if !availableSports.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            FilterPill(title: "All", isSelected: selectedSport == nil) {
-                                selectedSport = nil
-                            }
-                            
-                            ForEach(availableSports, id: \.self) { sport in
-                                FilterPill(title: sport, isSelected: selectedSport == sport) {
-                                    selectedSport = sport
-                                }
-                            }
+                // Search Bar
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.gray)
+                    TextField("Search users, teams, or sports...", text: $searchText)
+                        .autocapitalization(.none)
+                        .onChange(of: searchText) { _ in
+                            performSearch()
                         }
-                        .padding(.horizontal)
-                        .padding(.vertical, 8)
+                    if !searchText.isEmpty {
+                        Button(action: {
+                            searchText = ""
+                            searchResults.removeAll()
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.gray)
+                        }
                     }
-                    .background(Color.black.opacity(0.8))
                 }
+                .padding(10)
+                .background(Color.gray.opacity(0.2))
+                .cornerRadius(10)
+                .padding(.horizontal)
+                .padding(.bottom, 10)
                 
-                // Content Grid
-                if isLoading && posts.isEmpty {
-                    Spacer()
-                    ProgressView("Loading...")
-                    Spacer()
-                } else if filteredPosts.isEmpty {
-                    Spacer()
-                    VStack(spacing: 12) {
-                        Image(systemName: "magnifyingglass")
-                            .font(.system(size: 40))
-                            .foregroundColor(.gray)
-                        Text("No content found.")
-                            .foregroundColor(.secondary)
-                    }
-                    Spacer()
-                } else {
-                    ScrollView {
-                        LazyVGrid(columns: columns, spacing: 2) {
-                            ForEach(filteredPosts, id: \.id) { post in
-                                NavigationLink(destination: ExploreFeedWrapper(posts: filteredPosts, initialPostID: post.id)) {
-                                    ExploreGridCell(post: post)
+                ScrollView {
+                    if isLoading {
+                        ProgressView()
+                            .padding(.top, 50)
+                    } else if !searchText.isEmpty {
+                        if searchResults.isEmpty {
+                            Text("No results found.")
+                                .foregroundColor(.gray)
+                                .padding(.top, 50)
+                        } else {
+                            LazyVGrid(columns: columns, spacing: 2) {
+                                ForEach(searchResults, id: \.id) { post in
+                                    NavigationLink(destination: ExploreFeedWrapper(posts: searchResults, initialPostID: post.id)) {
+                                        ExploreGridCell(post: post)
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        // Default Trending Feed
+                        if trendingPosts.isEmpty {
+                            Text("No trending posts at the moment.")
+                                .foregroundColor(.gray)
+                                .padding(.top, 50)
+                        } else {
+                            LazyVGrid(columns: columns, spacing: 2) {
+                                ForEach(trendingPosts, id: \.id) { post in
+                                    NavigationLink(destination: ExploreFeedWrapper(posts: trendingPosts, initialPostID: post.id)) {
+                                        ExploreGridCell(post: post)
+                                    }
                                 }
                             }
                         }
                     }
-                    .background(Color.black)
-                    .refreshable {
-                        await fetchPostsAsync()
-                    }
                 }
             }
-            .navigationTitle("Explore")
+            .navigationTitle("Discover")
             .navigationBarTitleDisplayMode(.inline)
-            .background(Color.black.ignoresSafeArea())
-        }
-        .onAppear {
-            if posts.isEmpty {
-                fetchPosts()
+            .onAppear {
+//                if trendingPosts.isEmpty {
+                //not optimal, but we need to refresh when it fetches stale videos
+                    fetchTrending()
+//                }
             }
         }
-        // Force the tint color to be light so Navigation back buttons are visible
-        .accentColor(.roarGold)
     }
     
-    func fetchPosts() {
-        Task {
-            await fetchPostsAsync()
-        }
-    }
-    
-    @MainActor
-    func fetchPostsAsync() async {
+    private func fetchTrending() {
         isLoading = true
-        do {
-            let request = GraphQLRequest<Post>.list(Post.self)
-            let result = try await Amplify.API.query(request: request)
-            switch result {
-            case .success(let postsList):
-                self.posts = Array(postsList)
-                self.isLoading = false
-            case .failure(let error):
-                print("Explore fetch failed: \(error)")
-                self.isLoading = false
+        Task {
+            do {
+                let response = try await APIClient.shared.get(endpoint: "/videos", responseType: FeedResponse.self)
+                await MainActor.run {
+                    self.trendingPosts = response.videos
+                    self.isLoading = false
+                }
+            } catch {
+                print("Failed to fetch trending: \(error)")
+                await MainActor.run { self.isLoading = false }
             }
-        } catch {
-            print("Explore query failed: \(error)")
-            self.isLoading = false
         }
     }
-}
-
-// Subview for the filter buttons
-struct FilterPill: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
     
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.subheadline)
-                .fontWeight(.bold)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(isSelected ? Color.roarGold : Color.gray.opacity(0.3))
-                .foregroundColor(isSelected ? .black : .white)
-                .cornerRadius(20)
+    private func performSearch() {
+        // Debounce logic should go here ideally
+        // In local state, we can just filter trending or hit a search endpoint
+        let lowercased = searchText.lowercased()
+        searchResults = trendingPosts.filter { post in
+            let matchTitle = (post.title ?? "").lowercased().contains(lowercased)
+            let matchDesc = (post.description ?? "").lowercased().contains(lowercased)
+            let matchUser = (post.username ?? "").lowercased().contains(lowercased)
+            return matchTitle || matchDesc || matchUser
         }
     }
 }
@@ -149,7 +128,7 @@ struct ExploreGridCell: View {
             let height = proxy.size.width * 1.5
             
             ZStack(alignment: .bottomLeading) {
-                VideoThumbnailView(videoKey: post.videoURL)
+                VideoThumbnailView(videoKey: post.url)
                     .frame(width: proxy.size.width, height: height)
                     .clipped()
                 
@@ -157,7 +136,7 @@ struct ExploreGridCell: View {
                 HStack(spacing: 4) {
                     Image(systemName: "heart")
                         .font(.caption2)
-                    Text("\(post.likes ?? 0)")
+                    Text("\(post.likeCount ?? 0)")
                         .font(.caption)
                         .fontWeight(.bold)
                 }
@@ -180,7 +159,7 @@ struct ExploreGridCell: View {
 // Wrapper to launch the feed with a specific list of posts and a starting ID
 struct ExploreFeedWrapper: View {
     let posts: [Post]
-    let initialPostID: String
+    let initialPostID: Int
     
     var body: some View {
         VerticalFeedView(posts: posts, onRefresh: {

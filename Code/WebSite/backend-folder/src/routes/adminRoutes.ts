@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  getCommentLikesAdmin,
   getCommentsAdmin,
   getFollowersAdmin,
   getLikesAdmin,
@@ -16,6 +17,7 @@ router.get("/users", getUsersAdmin);
 router.get("/videos", getVideosAdmin);
 router.get("/likes", getLikesAdmin);
 router.get("/comments", getCommentsAdmin);
+router.get("/comment_likes", getCommentLikesAdmin);
 router.get("/followers", getFollowersAdmin);
 router.get("/tags", getTagsAdmin);
 router.get("/video_tags", getVideoTagsAdmin);

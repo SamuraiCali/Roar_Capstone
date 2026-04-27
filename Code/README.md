@@ -38,5 +38,5 @@ The User Manual document acts as the primary guide for the end-user. It outlines
 
 To effectively evaluate or run this project:
 1. Please begin by thoroughly reading the **Installation Guide.md**.
-2. Unzip the SQL dump located in `Database/database_dump.zip` using the password provided securely via email.
+2. Unzip the SQL dump located in `Database/database_dump.zip` using the password provided securely via email and in the description of the Roar Installation Guide youtube video.
 3. Follow the installation guide's configuration steps to connect the local application in `/WebSite` to your newly instantiated database.
