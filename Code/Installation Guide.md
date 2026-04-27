@@ -61,7 +61,13 @@ Before starting, ensure that the following are installed on your system:
     environment and postgresql server as outlined in the Dockerfile and docker-compose.yml
     Note: Docker Desktop (or the Docker daemon) must be running before executing this command.
 
-_(Insert Screenshot here of the backend server running successfully)_
+<img width="1138" height="245" alt="dockercompose" src="https://github.com/user-attachments/assets/cc687021-eeb0-4349-9e08-bec6bd296899" />
+//
+<img width="1138" height="151" alt="dbready" src="https://github.com/user-attachments/assets/2b725e9e-c49e-4633-8969-da88128bb4f7" />
+
+   
+
+
 
 ## 4. Frontend Setup (iOS App)
 
